@@ -1,0 +1,24 @@
+# Veri Lisansı — KARAR BEKLİYOR
+
+Bu projedeki **veri** (BOA belge görüntüleri, türetilmiş satır görüntüleri,
+transkripsiyonlar, etiketler) için lisans henüz belirlenmemiştir.
+
+## Durum: BEKLEMEDE
+
+BOA (Devlet Arşivleri) görüntülerinin kullanım, çoğaltma ve yeniden dağıtım
+koşulları teyit edilene kadar:
+
+- Ham BOA görüntüleri bu depoda dağıtılmaz.
+- Yalnızca türetilmiş veri (manifest, koordinat, transkripsiyon) ve provenans
+  bilgisi tutulabilir; bunların paylaşımı da hak durumu netleşene dek kısıtlıdır.
+
+Nihai veri lisansı (ör. CC-BY-4.0 veya kullanım-kısıtlı bir lisans), haklar
+netleştikten sonra **ADR-014** ile karara bağlanacaktır. Bu karar verilene kadar
+veri katkıları kısıtlıdır.
+
+## Önemli
+
+- Bu dosya hukuki bir görüş değildir; ilgili kurum koşulları teyit edilmelidir.
+- **Kod lisansı bu dosyadan bağımsızdır** ve Apache-2.0'dır (bkz. `LICENSE`).
+
+İlgili karar: `docs/adr/ADR-014-data-license.md`.
