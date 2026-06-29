@@ -16,6 +16,10 @@ belge üzerinde işaretleme**dir. Sistemin merkezinde, koordinat↔metin
 hizalamasını koruyan bir **belge alan modeli** (`Document → Page → Region →
 Line → Word → Token`) bulunur.
 
+RikaOCR şu aşamada Rik'a hattına odaklanır. Ancak mimari bilinçli olarak
+yazı-nötr tasarlanmıştır ve ileriki sürümlerde Divânî, Ta'lik, Siyâkat ve
+Osmanlı matbu metinlerini de destekleyecek biçimde kurulmuştur.
+
 ## Mimari
 
 Tasarımın tamamı [`docs/architecture.md`](docs/architecture.md) (TDD v0.2)
