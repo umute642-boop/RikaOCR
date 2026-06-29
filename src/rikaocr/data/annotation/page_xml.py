@@ -1,21 +1,33 @@
 # SPDX-License-Identifier: Apache-2.0
-"""PAGE-XML reader: parse eScriptorium/Kraken PAGE files into the document model.
+"""PAGE-XML codec: convert eScriptorium/Kraken PAGE files to/from the document model.
 
-Only the reader (``from_page_xml``) is implemented here; the writer is added in a
-later step. Parsing uses the standard-library ``xml.etree.ElementTree`` (no third
-party dependency). Word/glyph coordinates are read as bounding boxes, matching
-the document model (see ADR-009 and the M2 plan); the full PAGE polygon detail
-below line level is intentionally simplified.
+Both the reader (``from_page_xml``) and writer (``to_page_xml``), plus a
+file-based :class:`PageXmlCodec`, use the standard-library
+``xml.etree.ElementTree`` (no third-party dependency).
+
+Round-trip guarantee (see the M2 plan and ADR-017): ``Document -> PAGE ->
+Document`` is lossless for documents in the canonical form produced by the
+reader and by layout, namely: exactly one page; ``page_id`` equal to
+``image_ref``; contiguous ``reading_index`` values in reading order; empty
+``metadata``; and words without sub-token (glyph) decomposition. The reverse
+direction (``PAGE -> Document -> PAGE``) simplifies word/glyph polygons to
+bounding boxes, matching the document model (ADR-009).
 """
 
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
+from collections.abc import Sequence
+from pathlib import Path
 
 from rikaocr.common.exceptions import DataError
+from rikaocr.common.types import PathLike
 from rikaocr.core.document.geometry import Baseline, BBox, Point, Polygon
 from rikaocr.core.document.models import Document, Line, Page, Region, Word
-from rikaocr.data.annotation.region_mapping import region_type_from_page
+from rikaocr.data.annotation.region_mapping import region_type_from_page, region_type_to_page
+
+PAGE_NAMESPACE = "http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15"
+_PLACEHOLDER_TIMESTAMP = "1970-01-01T00:00:00"
 
 
 def from_page_xml(text: str) -> Document:
@@ -48,7 +60,7 @@ def from_page_xml(text: str) -> Document:
             for index, region_el in enumerate(page_el.findall(f"{ns}TextRegion"))
         ],
     )
-    doc_id = image_ref.rsplit(".", 1)[0] if image_ref else "document"
+    doc_id = root.get("pcGtsId") or (image_ref.rsplit(".", 1)[0] if image_ref else "document")
     return Document(doc_id=doc_id, pages=[page])
 
 
@@ -143,4 +155,115 @@ def _parse_point(pair: str) -> Point:
     return Point(int(float(x_str)), int(float(y_str)))
 
 
-__all__ = ["from_page_xml"]
+def to_page_xml(document: Document, *, indent: bool = True) -> str:
+    """Serialise a single-page :class:`Document` to a PAGE-XML string.
+
+    Raises:
+        DataError: if the document does not contain exactly one page (a PAGE-XML
+            file represents exactly one page).
+    """
+    if len(document.pages) != 1:
+        raise DataError("PAGE-XML represents exactly one page; document must have one page.")
+
+    ET.register_namespace("", PAGE_NAMESPACE)
+    ns = f"{{{PAGE_NAMESPACE}}}"
+    root = ET.Element(f"{ns}PcGts")
+    if document.doc_id:
+        root.set("pcGtsId", document.doc_id)
+    _write_metadata(root, ns)
+    _write_page(root, document.pages[0], ns)
+
+    if indent:
+        ET.indent(root, space="  ")
+    body = ET.tostring(root, encoding="unicode")
+    return f'<?xml version="1.0" encoding="UTF-8"?>\n{body}\n'
+
+
+def _write_metadata(root: ET.Element, ns: str) -> None:
+    metadata = ET.SubElement(root, f"{ns}Metadata")
+    ET.SubElement(metadata, f"{ns}Creator").text = "RikaOCR"
+    ET.SubElement(metadata, f"{ns}Created").text = _PLACEHOLDER_TIMESTAMP
+    ET.SubElement(metadata, f"{ns}LastChange").text = _PLACEHOLDER_TIMESTAMP
+
+
+def _write_page(root: ET.Element, page: Page, ns: str) -> None:
+    page_el = ET.SubElement(root, f"{ns}Page")
+    if page.image_ref is not None:
+        page_el.set("imageFilename", page.image_ref)
+    if page.width is not None:
+        page_el.set("imageWidth", str(page.width))
+    if page.height is not None:
+        page_el.set("imageHeight", str(page.height))
+    for index, region in enumerate(page.iter_in_reading_order()):
+        _write_region(page_el, region, ns, index)
+
+
+def _write_region(parent: ET.Element, region: Region, ns: str, index: int) -> None:
+    region_el = ET.SubElement(parent, f"{ns}TextRegion")
+    region_el.set("id", f"r{index}")
+    region_el.set("type", region_type_to_page(region.region_type))
+    if region.polygon is not None:
+        _write_coords(region_el, region.polygon.points, ns)
+    for line_index, line in enumerate(region.iter_in_reading_order()):
+        _write_line(region_el, line, ns, line_index)
+
+
+def _write_line(parent: ET.Element, line: Line, ns: str, index: int) -> None:
+    line_el = ET.SubElement(parent, f"{ns}TextLine")
+    line_el.set("id", f"l{index}")
+    if line.polygon is not None:
+        _write_coords(line_el, line.polygon.points, ns)
+    if line.baseline is not None:
+        ET.SubElement(line_el, f"{ns}Baseline").set("points", _format_points(line.baseline.points))
+    for word_index, word in enumerate(line.words):
+        _write_word(line_el, word, ns, word_index)
+    _write_text_equiv(line_el, line.text, ns, confidence=line.confidence)
+
+
+def _write_word(parent: ET.Element, word: Word, ns: str, index: int) -> None:
+    word_el = ET.SubElement(parent, f"{ns}Word")
+    word_el.set("id", f"w{index}")
+    if word.bbox is not None:
+        _write_coords(word_el, _bbox_to_points(word.bbox), ns)
+    _write_text_equiv(word_el, word.text, ns)
+
+
+def _write_coords(parent: ET.Element, points: Sequence[Point], ns: str) -> None:
+    ET.SubElement(parent, f"{ns}Coords").set("points", _format_points(points))
+
+
+def _write_text_equiv(
+    parent: ET.Element, text: str, ns: str, *, confidence: float | None = None
+) -> None:
+    text_equiv = ET.SubElement(parent, f"{ns}TextEquiv")
+    if confidence is not None:
+        text_equiv.set("conf", f"{confidence}")
+    ET.SubElement(text_equiv, f"{ns}Unicode").text = text
+
+
+def _format_points(points: Sequence[Point]) -> str:
+    return " ".join(f"{point.x},{point.y}" for point in points)
+
+
+def _bbox_to_points(bbox: BBox) -> tuple[Point, ...]:
+    return (
+        Point(bbox.x_min, bbox.y_min),
+        Point(bbox.x_max, bbox.y_min),
+        Point(bbox.x_max, bbox.y_max),
+        Point(bbox.x_min, bbox.y_max),
+    )
+
+
+class PageXmlCodec:
+    """File-based PAGE-XML codec wrapping :func:`from_page_xml` / :func:`to_page_xml`."""
+
+    def load(self, path: PathLike) -> Document:
+        """Read a PAGE-XML file and return a :class:`Document`."""
+        return from_page_xml(Path(path).read_text(encoding="utf-8"))
+
+    def save(self, document: Document, path: PathLike, *, indent: bool = True) -> None:
+        """Write a :class:`Document` to ``path`` as PAGE-XML."""
+        Path(path).write_text(to_page_xml(document, indent=indent), encoding="utf-8")
+
+
+__all__ = ["from_page_xml", "to_page_xml", "PageXmlCodec", "PAGE_NAMESPACE"]
