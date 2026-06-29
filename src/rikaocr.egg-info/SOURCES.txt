@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-src/rikaocr/__init__.py
-src/rikaocr.egg-info/PKG-INFO
-src/rikaocr.egg-info/SOURCES.txt
-src/rikaocr.egg-info/dependency_links.txt
-src/rikaocr.egg-info/requires.txt
-src/rikaocr.egg-info/top_level.txt
-tests/test_import.py
