@@ -28,3 +28,4 @@ Kaynak gerekçeler için bkz. `../architecture.md` (TDD v0.2).
 | [017](ADR-017-page-round-trip.md) | PAGE-XML round-trip garantisi (Document→PAGE→Document kayıpsız) | Kabul |
 | [018](ADR-018-dataset-and-image-deps.md) | Veri seti yapısı + görüntü bağımlılıkları (Pillow/NumPy `[data]`, OpenCV ertelenmiş) | Kabul |
 | [019](ADR-019-kraken-engine-and-wsl2.md) | Tanıma motoru Kraken; adaptörle sarılır; WSL2+CUDA eğitim; `.gt.txt` export; `[train]` extras | Kabul |
+| [020](ADR-020-layout-segmentation-port.md) | Düzen analizi portu: ince `SegmentationResult` DTO; segment/recognize ayrışması; RTL okuma sırası; Kraken `blla` adaptörü lazy | Kabul |
