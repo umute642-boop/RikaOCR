@@ -11,11 +11,13 @@ Requires the optional ``[data]`` extra (Pillow) for image loading.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from rikaocr.common.exceptions import DataError
 from rikaocr.common.types import PathLike
+from rikaocr.core.document.models import Document
 from rikaocr.data.dataset.image_io import load_image
 from rikaocr.data.dataset.sample import LineSample
 from rikaocr.evaluation.metrics import aggregate_cer, aggregate_wer
@@ -64,4 +66,37 @@ def evaluate(
     return report
 
 
-__all__ = ["EvalReport", "evaluate"]
+def _line_texts(document: Document) -> Iterator[str]:
+    """Yield every line's text in reading order across all pages."""
+    for page in document.pages:
+        for region in page.iter_in_reading_order():
+            for line in region.iter_in_reading_order():
+                yield line.text
+
+
+def evaluate_document(prediction: Document, reference: Document) -> EvalReport:
+    """Score a recognised document against a ground-truth document.
+
+    Line texts are paired in reading order across all pages and scored with
+    micro-averaged CER/WER. Both documents must contain the same number of
+    lines (the pipeline preserves geometry, so the counts must match).
+
+    Raises:
+        DataError: if the prediction and reference have different line counts.
+    """
+    predicted = list(_line_texts(prediction))
+    expected = list(_line_texts(reference))
+    if len(predicted) != len(expected):
+        raise DataError(
+            f"Line count mismatch: prediction has {len(predicted)}, "
+            f"reference has {len(expected)}."
+        )
+    pairs = list(zip(predicted, expected, strict=True))
+    return EvalReport(
+        cer=aggregate_cer(pairs),
+        wer=aggregate_wer(pairs),
+        num_samples=len(pairs),
+    )
+
+
+__all__ = ["EvalReport", "evaluate", "evaluate_document"]
