@@ -1,0 +1,9 @@
+# Normalise line endings across Windows / WSL2 / CI (see commit history).
+* text=auto eol=lf
+
+# Binary assets must never be normalised.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.mlmodel binary

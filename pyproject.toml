@@ -45,6 +45,9 @@ train = [
     "mlflow>=2",
 ]
 
+[project.scripts]
+rikaocr = "rikaocr.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

@@ -5,7 +5,7 @@ from PIL import Image
 
 from rikaocr.core.document.enums import RegionType
 from rikaocr.core.document.geometry import Point, Polygon
-from rikaocr.core.document.models import Line, Region
+from rikaocr.core.document.models import Region
 from rikaocr.layout.base import SegmentationResult, segment_document
 from rikaocr.layout.dummy import DummySegmenter
 
@@ -32,7 +32,9 @@ def test_builds_single_page_document_with_size() -> None:
 
 
 def test_lines_get_top_to_bottom_reading_index() -> None:
-    document = segment_document(_image(90, 30), DummySegmenter(num_lines=3), doc_id="d", page_id="p")
+    document = segment_document(
+        _image(90, 30), DummySegmenter(num_lines=3), doc_id="d", page_id="p"
+    )
     lines = document.pages[0].regions[0].lines
     assert [line.reading_index for line in lines] == [0, 1, 2]
 
