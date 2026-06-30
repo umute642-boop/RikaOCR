@@ -26,3 +26,4 @@ Kaynak gerekçeler için bkz. `../architecture.md` (TDD v0.2).
 | [015](ADR-015-f1-baseline.md) | F1 tabanı: önce Kraken/Calamari, kendi CRNN sonra | Kabul |
 | [016](ADR-016-experiment-tracking.md) | Deney takibi: F1'de MLflow | Kabul |
 | [017](ADR-017-page-round-trip.md) | PAGE-XML round-trip garantisi (Document→PAGE→Document kayıpsız) | Kabul |
+| [018](ADR-018-dataset-and-image-deps.md) | Veri seti yapısı + görüntü bağımlılıkları (Pillow/NumPy `[data]`, OpenCV ertelenmiş) | Kabul |
