@@ -47,9 +47,7 @@ def build_pipeline(
         return Pipeline(DummySegmenter(num_lines=num_lines), DummyRecognizer())
     if engine == "kraken":
         if rec_model is None:
-            raise ValueError(
-                "Kraken engine requires --rec-model (a trained recognition model)."
-            )
+            raise ValueError("Kraken engine requires --rec-model (a trained recognition model).")
         from rikaocr.layout.kraken_segmenter import KrakenSegmenter
         from rikaocr.recognition.kraken_adapter import KrakenRecognizer
 
