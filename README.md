@@ -1,60 +1,104 @@
 # RikaOCR 
 
-> **Osmanlı Arşiv Belgeleri (BOA) İçin Bağımsız, Deterministik ve Bilimsel HTR Araştırma Altyapısı**
+> **Osmanlı Arşiv Belgeleri (BOA) İçin Bağımsız, Deterministik ve Motor-Nötr HTR Araştırma Altyapısı**
 
 ![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-194%20passed-brightgreen.svg)
 ![Architecture](https://img.shields.io/badge/architecture-engine--agnostic-orange.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-**Durum:** v0.9 — M8 (Veri Hazırlığı ve Ground Truth Aşaması). Çekirdek mimari, otomatik testler ve PAGE-XML köprüleri tamamlandı.
+**Mevcut Durum:** v0.9 — M8 (Veri Hazırlığı ve Ground Truth Aşaması). Çekirdek mimari, otomatik test laboratuvarı ve PAGE-XML entegrasyonu tamamlanmıştır.
 
-RikaOCR, yalnızca "Osmanlıca okuyan sıradan bir yapay zeka modeli" değildir. Literatürdeki veri sızıntısı (data leakage), tek modele bağımlılık ve bilimsel ispat eksikliği gibi kronik sorunları çözmek amacıyla sıfırdan inşa edilmiş **matematiksel olarak kanıtlanabilir bir Tarihi Metin Tanıma (HTR) altyapısıdır.**
+RikaOCR, kapalı kutu (black-box) olarak çalışan ticari OCR araçlarına veya spesifik bir yapay zeka modeline bağımlı sistemlere karşı geliştirilmiş, **tamamen bağımsız ve şahsi bir açık kaynak araştırma inisiyatifidir.** Literatürdeki "veri sızıntısı" (data leakage), "tek modele bağımlılık" ve "karmaşık Osmanlı geometrisi" problemlerini kökünden çözmek için katı yazılım mühendisliği prensipleriyle (TDD, Dependency Inversion) inşa edilmiştir.
 
----
-
-##  Geliştirme Motivasyonu: Neden Rik'a ve Neden Yeni Bir Altyapı?
-
-Standart OCR (Optik Karakter Tanıma) sistemleri, Latin alfabesiyle yazılmış düz matbu metinler için tasarlanmıştır. Ancak Başbakanlık Osmanlı Arşivi'ndeki (BOA) el yazması Rik'a belgeleri, standart yapay zeka mimarilerini çökerten şu kronik zorluklara sahiptir:
-
-1. **Karmaşık Belge Geometrisi:** Düz satırlar yoktur. Derkenarlar (kenar notları), çapraz yazılar, mühürler, iç içe geçmiş nizamlar ve kavisli (eğimli) satırlar (baseline) standart "dikdörtgen kutu" (bounding box) mantığını işlevsiz kılar.
-2. **Ligatürler ve Bitişiklik:** Rik'a hattında harfler sadece yan yana gelmez, dikeyde de istiflenir ve karmaşık ligatürler oluşturur.
-3. **Harekesizlik ve Bağlam:** Arap alfabesi tabanlı Osmanlıca, ünlü harflerin eksikliği nedeniyle yoğun bağlamsal analiz gerektirir.
-
-RikaOCR, yapay zekayı bu kaotik yapıya uydurmak için **"Geometri-Farkındalıklı" (Geometry-Aware)** bir veri hazırlama ve eğitim köprüsü olarak doğmuştur.
+Bu depo, sadece bir kod yığını değil; tüm bu altyapı geliştirme sürecinin, mimari kararların ve 194 adet doğrulama testinin detaylıca raporlandığı **58 sayfalık akademik bir makale taslağının (Q1 seviyesi hedefli) yaşayan, çalışan ve ispatlanmış halidir.**
 
 ---
 
-##  Çekirdek Mühendislik Farkları ve Vizyon
+##  Geliştirme Motivasyonu: Neden "Sıradan" Bir OCR İşe Yaramaz?
 
-Piyasadaki kapalı kutu (black-box) çeviri araçlarının aksine RikaOCR, %100 şeffaf, kanıtlanabilir ve metodolojik olarak kusursuz bir mimari sunar:
+Tesseract veya standart PyTorch/HuggingFace HTR modelleri, Latin alfabesiyle ve düz satırlarla yazılmış modern matbu metinler için tasarlanmıştır. Ancak Başbakanlık Osmanlı Arşivi'ndeki (BOA) karmaşık Rik'a belgeleri bu sistemleri şu sebeplerle çökertir:
 
-###  1. Motor Bağımsızlık (Engine-Agnostic / Adapter Pattern)
-Sistem herhangi bir yapay zeka motoruna (Kraken, Calamari, TrOCR, Tesseract vb.) göbekten bağlı değildir. Yazılım dünyasındaki *Dependency Inversion* (Bağımlılığı Tersine Çevirme) prensibi kullanılarak, motorlar sisteme sadece birer "Adaptör" olarak takılır. 
-* **Avantajı:** Yarın daha üstün bir yapay zeka teknolojisi çıksa bile RikaOCR altyapısı çöpe gitmez; sadece yeni bir adaptör yazılır ve sistem çalışmaya devam eder.
+1. **Topolojik Kaos (Derkenarlar ve Kavisler):** Osmanlı evrakında okuma sırası yukarıdan aşağıya standart bir akış izlemez. Çapraz yazılan derkenarlar, mühürler etrafında dolanan metinler ve kavisli (eğimli) satırlar (baseline) standart "dikdörtgen kutu (x, y, w, h)" mantığını işlevsiz kılar.
+2. **Dikey Ligatürler ve İstifleme:** Rik'a hattında kelimeler sadece yatay eksende birleşmez. Harfler dikeyde birbirinin üzerine biner (istif).
+3. **Bağlam Zorunluluğu:** Ünlü harflerin (harekelerin) olmaması, sistemi sadece karakter tanımaya (OCR) değil, dilsel bir tahmin yürütmeye (HTR + NLP) zorlar.
 
-###  2. Sıfır Veri Sızıntısı ve Deterministik Bölme (Zero Data Leakage)
-Literatürdeki birçok HTR projesinin en büyük hatası, eğitim ve test verilerini "satır bazında" rastgele bölmektir. Bu, yapay zekanın "kopya çekmesine" (overfitting) yol açar.
-* RikaOCR, belgeleri bölmek için **SHA-256 kriptografik şifreleme** algoritmasını kullanır.
-* Bölme işlemi katı bir şekilde **"Belge Bazında"** yapılır. Eğitim setindeki bir sayfanın kağıt dokusunu, mürekkebini veya kâtibinin el yazısını, yapay zeka test setinde asla göremez. Sonuçlar %100 dürüsttür.
-
-###  3. Poligonal Maskeleme ve Yön-Farkındalığı
-Standart (x, y, w, h) formatındaki dikdörtgen kutular yerine, sistem her bir kelime ve satır için çok noktalı poligonlar (polygon masks) ve okuma yönü (Right-to-Left) hizalamaları kullanır.
-
-###  4. Standart Kütüphanelerle PAGE-XML Entegrasyonu (ADR-017)
-eScriptorium, Transkribus ve benzeri uluslararası etiketleme platformlarının ürettiği PAGE-XML formatı ile kusursuz konuşur. Herhangi bir dış bağımlılığa (lxml vb.) ihtiyaç duymadan, sistem `Document → PAGE-XML → Document` döngüsünde sıfır veri kaybı garantisi verir.
+RikaOCR, yapay zekayı bu kaotik belge yapısına uydurmak için **Geometri-Farkındalıklı (Geometry-Aware)** devasa bir köprü işlevi görür.
 
 ---
 
-##  Kanıtlanabilirlik Laboratuvarı: 194 Otomatik Test
+##  Çekirdek Mühendislik Kararları ve Mimari (ADR)
 
-RikaOCR, "çalıştığını varsaydığımız" scriptlerden oluşmaz. Sistem her çalıştığında veya kod güncellendiğinde, tüm altyapı matematiksel testlerden geçirilir. **194 adet otomatik Pytest** şunları doğrular:
+### 1. Motor Bağımsızlığı ve Adaptör Deseni (Engine-Agnosticism)
+RikaOCR çekirdeği **hiçbir** yapay zeka motoruna bağımlı değildir. Kraken, Calamari, TrOCR veya Tesseract; bu sistemlerin hepsi RikaOCR için sadece birer "Adaptör"dür (Dependency Inversion / Port-Adapter Pattern). 
+* **Pratik Sonuç:** Kraken projesi yarın güncellenmeyi bıraksa veya tamamen çökse bile, RikaOCR altyapısı bir satır bile hasar almaz. Yeni bir model için sadece `Segmenter` ve `Recognizer` arayüzlerine yeni bir sınıf yazılması yeterlidir.
 
-* **Çekirdek (Core):** Belge alan modelinin (Document Hierarchy) bütünlüğü.
-* **Geometri (Geometry):** Koordinatların eksi (-) değer almadığı ve çokgenlerin matematiksel geçerliliği.
-* **Bölme (Splitting):** SHA-256 algoritmasının hiçbir koşulda veri sızdırmadığı.
-* **Uyarlanabilirlik (Dummy Engine):** Kraken gibi motorlar sistemde kurulu olmasa bile boru hattının (pipeline) çökmediği ve zarifçe atlandığı (Lazy Loading).
+###  2. SHA-256 ile Deterministik Bölme (Zero Data Leakage)
+HTR literatüründeki en büyük metodolojik hata, eğitim (train) ve test verilerinin satır bazında rastgele bölünmesidir. Bu durum "Veri Sızıntısına" yol açar; yapay zeka, eğitimde gördüğü bir belgenin kağıt dokusunu, gürültüsünü veya kâtibinin el yazısını test setinde de görür ve yüksek başarı göstererek bizi kandırır.
+* **Çözümümüz:** RikaOCR, belgelerin kimliğini (ID) **SHA-256** ile şifreler ve veri setini katı bir şekilde **"Belge Bazında"** (Document-Level) böler. Eğitimdeki bir görselin tek bir pikseli bile test setine sızamaz (`test_splitting.py` ile matematiksel olarak ispatlanmıştır).
 
+###  3. Poligonal Geometri ve Yönlendirme (RTL)
+Sistemdeki `Region`, `Line` ve `Word` sınıflarının her biri kendi poligonal maskelerini (Polygon) barındırır. Okuma sırası algoritmaları Arap/Osmanlı alfabesinin doğasına uygun olarak Sağdan-Sola (RTL) ve çokgen tabanlı çalışacak şekilde özelleştirilmiştir.
+
+###  4. PAGE-XML "Round-Trip" Garantisi (ADR-017)
+Uluslararası platformlarla (eScriptorium, Transkribus) iletişim kuran `PageXmlCodec` modülü, kayıpsız bir gidiş-dönüş garantisi sunar. Sisteme giren bir belge, PAGE-XML'e dönüştürülüp tekrar projeye alındığında; okuma sırasından poligon noktalarına kadar hiçbir veri bozulmaz.
+---
+
+##  Kilometre Taşları ve Geliştirme Günlükleri (M1 - M8)
+
+RikaOCR, rastgele yazılmış scriptlerin bir araya gelmesiyle değil, katı bir Milestones (M) planlaması ve Test-Güdümlü Geliştirme (TDD) metodolojisiyle adım adım inşa edilmiştir. Her bir aşama, 58 sayfalık akademik makale taslağında teorik olarak ispatlanmış ve kod düzeyinde doğrulanmıştır.
+
+###  M1: Belge Alan Modelinin (Domain Model) İnşası
+Sistemin veriyi hafızada nasıl tutacağını belirleyen temel ontoloji oluşturuldu. Osmanlı arşiv belgelerinin hiyerarşik yapısını temsil eden nesne yönelimli model sıfırdan yazıldı.
+* **Hiyerarşik Yapı:** `Document` ➔ `Page` ➔ `Region` ➔ `Line` ➔ `Word` ➔ `Token` zinciri kuruldu.
+* **Doğrulama:** Satırların üst bölgelere, kelimelerin satırlara olan geometrik bağımlılıkları `test_alignment.py` altındaki testlerle koruma altına alındı. Bir satırın, ait olduğu sayfa sınırlarının dışına çıkması yazılımsal olarak engellendi.
+
+###  M2: PAGE-XML Codec Modülü (`PageXmlCodec`)
+Uluslararası standart etiketleme formatı olan PAGE-XML verilerini okuma ve yazma yeteneği projeye kazandırıldı.
+* **Mühendislik Kararı:** Dış kütüphanelerin (lxml vb.) getireceği bağımlılık ve versiyon karmaşasını önlemek adına, Python'un yerleşik standart kütüphaneleriyle sıfırdan bir XML parser/encoder yazıldı (ADR-017).
+* **Kayıpsız Gidiş-Dönüş (Canonical Round-Trip):** Bir belgenin RikaOCR modelinden PAGE-XML'e dönüştürülüp, ardından tekrar RikaOCR modeline geri yüklenmesi durumunda koordinatların, okuma sırasının ve metinlerin tek bir bit bile kayba uğramadığı matematiksel olarak ispatlandı (`test_page_xml.py`).
+
+###  M3: Veri Girişi ve Üstveri (Ingest & Metadata) Yönetimi
+Arşivden gelen ham görüntülerin ve bunlara ait meta verilerin (kâtip bilgisi, fon kodu, belge tarihi vb.) sisteme güvenli bir şekilde alınması sağlandı. Veri manipülasyonunu engellemek amacıyla tüm girdiler izole bir dosya sistemine bağlandı.
+
+###  M4: Dataset Modülü ve Deterministik Bölme (SHA-256)
+Yapay zekanın eğitim sürecindeki en büyük bilimsel açmaz olan "veri sızıntısı" (data leakage) problemi bu aşamada çözüldü.
+* **Algoritma:** Her belge içeriği ve görseli, **SHA-256** algoritmasıyla benzersiz bir karma (hash) değerine dönüştürüldü.
+* **Katı Bölme Politikası:** Veri kümesi %80 Eğitim, %10 Doğrulama (Validation) ve %10 Test olarak ayrılırken, satır bazlı değil tamamen **Belge Bazlı** bölme yapıldı. Yapay zekanın test setinde karşılaşacağı bir kâtibin el yazısını veya sayfa gürültüsünü eğitim setinde görerek "kopya çekmesi" imkansız hale getirildi (`test_splitting.py`).
+
+###  M5: Model ve Motor Bağımsızlığı (Abstraction Layer)
+Yapay zeka motorlarının (Kraken vb.) projeye göbekten bağlanmasını önlemek amacıyla soyutlama katmanları (Protocols) yazıldı.
+* **Tasarım Kalıbı (Design Pattern):** *Adapter Pattern* kullanılarak `Recognizer` ve `Segmenter` sınıfları protokollere bağlandı.
+* **Tembel Yükleme (Lazy Loading):** PyTorch veya Kraken gibi devasa kütüphanelerin, projenin çekirdek modülleri çalışırken RAM'i şişirmemesi sağlandı. Bu kütüphaneler sadece yapay zeka tahmini (inference) istendiği milisaniyede hafızaya çağrılır (`test_kraken_adapter.py`).
+
+###  M6: Uçtan Uca (End-to-End) Boru Hattı ve CLI Entegrasyonu
+Yazılan tüm bağımsız modüller (Ingest, Codec, Dataset, Abstraction) merkezi bir boru hattında (`pipeline.py`) birleştirildi ve kullanıcı dostu bir Komut Satırı Arayüzü (CLI) geliştirildi.
+
+###  M7: Değerlendirme Motoru (Evaluation Engine)
+Eğitilen modellerin başarısını ölçmek için endüstri standardı olan CER (Karakter Hata Oranı) ve WER (Kelime Hata Oranı) hesaplama algoritmaları entegre edildi.
+* **Algoritmik Detay:** Karakter karşılaştırmaları için *Levenshtein Distance* (Düzenleme Mesafesi) algoritması Osmanlıca/Arap alfabesinin doğasına uygun olarak Sağdan-Sola (RTL) okuma sırasını gözetecek şekilde optimize edildi.
+
+###  M8: Veri Hazırlığı ve Yerel eScriptorium Laboratuvarı (Aktif Aşama)
+Yazılım altyapısının doğrulanmasının ardından, yapay zekaya Rik'a hattını öğreteceğimiz "Öğretmenlik" safhasına geçildi.
+* **Laboratuvar Kurulumu:** Windows ortamında WSL2 (Linux için Windows Alt Sistemi) ve Docker konteyner mimarisi kullanılarak yerel bir **eScriptorium** sunucusu ayağa kaldırıldı.
+* **Veri Köprüleri:** eScriptorium'dan çıkacak verileri anında işlemek üzere `prepare_boa.py` ve `export_gt.py` scriptleri tamamlandı. Şu an aktif olarak pilot belgelerin tam manuel segmentasyonu ve transkripsiyonu (Ground Truth üretimi) bu laboratuvar üzerinden yürütülmektedir.
+
+---
+
+##  Doğrulama Laboratuvarı: 194 Onaylanmış Matematiksel İspat
+
+RikaOCR, "çalıştığı iddia edilen" değil, **"çalıştığı 194 testle matematiksel olarak ispatlanmış"** bir altyapıdır. Geliştirilen test süiti (`pytest`), her kod satırını ve geometrik hesabı anlık olarak denetler:
+
+* **Geometri Doğrulamaları (`geometry`):** Poligon noktalarının eksi değer alamayacağını, çizgilerin çakışma matrislerini ve alan hesaplamalarını doğrular.
+* **Güvenlik ve Dayanıklılık:** Bozuk, eksik veya manipüle edilmiş PAGE-XML dosyaları sisteme yüklendiğinde, altyapının çökmeden bu dosyaları zarifçe reddettiğini (`validation`) kanıtlar.
+* **Donanım Bağımsızlığı:** Bilgisayarda GPU veya ağır yapay zeka kütüphaneleri kurulu olmasa bile, 194 testin 190'ı standart Python kütüphaneleriyle milisaniyeler içinde çalışır; yapay zeka motoruna bağlı kalan 4 test ise sistem tarafından çökme yaşanmadan güvenle atlanır (Skipped).
+---
+
+##  Kurulum Mimarisi: Modüler Katmanlar
+
+RikaOCR, gereksiz kaynak tüketimini ve versiyon çakışmalarını önlemek amacıyla "Katmanlı Kurulum" (Layered Installation) mimarisine sahiptir. Sistemin hangi özelliğine ihtiyaç duyuluyorsa, sadece o katmanın bağımlılıkları yüklenir:
+
+**1. Çekirdek Kurulum (Hafif İşlemler Katmanı)**
+Yalnızca belge hiyerarşisi, PAGE-XML dönüştürme, dizin yönetimi ve 194 testin çalıştırılması içindir. Ağır kütüphaneler içermez, sıradan bir işlemcide (CPU) saniyeler içinde kurulur.
 ```bash
-# Tüm test laboratuvarını milisaniyeler içinde çalıştırmak için:
-pytest
+pip install -e .
