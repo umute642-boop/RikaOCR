@@ -9,33 +9,52 @@
 
 **Durum:** v0.9 — M8 (Veri Hazırlığı ve Ground Truth Aşaması). Çekirdek mimari, otomatik testler ve PAGE-XML köprüleri tamamlandı.
 
-RikaOCR, yalnızca "Osmanlıca okuyan sıradan bir yapay zeka modeli" değildir. Bilecik Şeyh Edebali Üniversitesi Tarih Bölümü yüksek lisans tez projesi kapsamında, literatürdeki veri sızıntısı (data leakage), tek modele bağımlılık ve bilimsel ispat eksikliği gibi kronik sorunları çözmek amacıyla sıfırdan inşa edilmiş **matematiksel olarak kanıtlanabilir bir Tarihi Metin Tanıma (HTR) altyapısıdır.**
+RikaOCR, yalnızca "Osmanlıca okuyan sıradan bir yapay zeka modeli" değildir. Literatürdeki veri sızıntısı (data leakage), tek modele bağımlılık ve bilimsel ispat eksikliği gibi kronik sorunları çözmek amacıyla sıfırdan inşa edilmiş **matematiksel olarak kanıtlanabilir bir Tarihi Metin Tanıma (HTR) altyapısıdır.**
 
 ---
 
-##  Vizyon ve Temel Mühendislik Farkları
+##  Geliştirme Motivasyonu: Neden Rik'a ve Neden Yeni Bir Altyapı?
 
-Piyasadaki kapalı kutu (black-box) çeviri araçlarının aksine RikaOCR, %100 şeffaf ve metodolojik olarak kusursuz bir mimari sunar:
+Standart OCR (Optik Karakter Tanıma) sistemleri, Latin alfabesiyle yazılmış düz matbu metinler için tasarlanmıştır. Ancak Başbakanlık Osmanlı Arşivi'ndeki (BOA) el yazması Rik'a belgeleri, standart yapay zeka mimarilerini çökerten şu kronik zorluklara sahiptir:
 
-*  **Motor Bağımsızlık (Engine-Agnostic):** Sistem herhangi bir yapay zeka motoruna (Kraken, Calamari, TrOCR vb.) göbekten bağlı değildir. Motorlar sisteme "Adaptör" mantığıyla (Dependency Inversion) takılır. Yarın daha iyi bir teknoloji çıkarsa, projenin çekirdek kodu değişmeden sisteme entegre edilebilir.
-*  **Sıfır Veri Sızıntısı (Deterministik Bölme):** RikaOCR, yapay zekanın kopya çekmesini engellemek için satır bazlı rastgele bölme yapmaz. SHA-256 kriptografik şifrelemesi kullanarak verileri "Belge Bazında" böler. Yapay zeka, testte göreceği sayfanın mürekkebini veya kâtibini eğitimde asla göremez.
-*  **Karmaşık Osmanlı Geometrisi (Geometry-Aware):** Matbu eserlerin basit dikdörtgen kutuları yerine; Başbakanlık Osmanlı Arşivi (BOA) belgelerindeki derkenarlar, mühürler, kavisli Rik'a satırları ve iç içe geçen nizamlar için **poligonal maskeler (çokgenler) ve alt çizgiler (baseline)** kullanır.
-*  **Kusursuz Dışa Aktarım (PAGE-XML):** eScriptorium ve Transkribus gibi uluslararası etiketleme platformlarıyla standart kütüphaneler üzerinden kayıpsız iletişim kuran `PageXmlCodec` altyapısına sahiptir (ADR-017).
+1. **Karmaşık Belge Geometrisi:** Düz satırlar yoktur. Derkenarlar (kenar notları), çapraz yazılar, mühürler, iç içe geçmiş nizamlar ve kavisli (eğimli) satırlar (baseline) standart "dikdörtgen kutu" (bounding box) mantığını işlevsiz kılar.
+2. **Ligatürler ve Bitişiklik:** Rik'a hattında harfler sadece yan yana gelmez, dikeyde de istiflenir ve karmaşık ligatürler oluşturur.
+3. **Harekesizlik ve Bağlam:** Arap alfabesi tabanlı Osmanlıca, ünlü harflerin eksikliği nedeniyle yoğun bağlamsal analiz gerektirir.
 
----
-
-##  Kanıtlanabilirlik (194 Otomatik Test)
-
-Bu proje "çalıştığı varsayılan" kodlarla değil, ispatlanmış matematiksel testlerle çalışır. 
-
-Belge hiyerarşisi, PAGE-XML okuyucusu, veri sızıntısı kontrolleri ve geometri hesaplamaları, her kod değişikliğinde mili-saniyeler içinde koşan tam **194 adet otomatik test (Pytest)** ile güvence altına alınmıştır. Ağır yapay zeka kütüphaneleri (PyTorch, Kraken) "tembel yükleme" (lazy loading) ile sadece ihtiyaç anında çağrılır, böylece çekirdek sistem CPU üzerinde hafifçe çalışabilir.
+RikaOCR, yapay zekayı bu kaotik yapıya uydurmak için **"Geometri-Farkındalıklı" (Geometry-Aware)** bir veri hazırlama ve eğitim köprüsü olarak doğmuştur.
 
 ---
 
-## 🛠️ Kurulum
+##  Çekirdek Mühendislik Farkları ve Vizyon
 
-Sistem, profesyonel Python paketleme standartlarına uygun olarak modüler tasarlanmıştır.
+Piyasadaki kapalı kutu (black-box) çeviri araçlarının aksine RikaOCR, %100 şeffaf, kanıtlanabilir ve metodolojik olarak kusursuz bir mimari sunar:
 
-**1. Çekirdek Kurulum (Veri hazırlığı ve testler için - GPU gerektirmez)**
+###  1. Motor Bağımsızlık (Engine-Agnostic / Adapter Pattern)
+Sistem herhangi bir yapay zeka motoruna (Kraken, Calamari, TrOCR, Tesseract vb.) göbekten bağlı değildir. Yazılım dünyasındaki *Dependency Inversion* (Bağımlılığı Tersine Çevirme) prensibi kullanılarak, motorlar sisteme sadece birer "Adaptör" olarak takılır. 
+* **Avantajı:** Yarın daha üstün bir yapay zeka teknolojisi çıksa bile RikaOCR altyapısı çöpe gitmez; sadece yeni bir adaptör yazılır ve sistem çalışmaya devam eder.
+
+###  2. Sıfır Veri Sızıntısı ve Deterministik Bölme (Zero Data Leakage)
+Literatürdeki birçok HTR projesinin en büyük hatası, eğitim ve test verilerini "satır bazında" rastgele bölmektir. Bu, yapay zekanın "kopya çekmesine" (overfitting) yol açar.
+* RikaOCR, belgeleri bölmek için **SHA-256 kriptografik şifreleme** algoritmasını kullanır.
+* Bölme işlemi katı bir şekilde **"Belge Bazında"** yapılır. Eğitim setindeki bir sayfanın kağıt dokusunu, mürekkebini veya kâtibinin el yazısını, yapay zeka test setinde asla göremez. Sonuçlar %100 dürüsttür.
+
+###  3. Poligonal Maskeleme ve Yön-Farkındalığı
+Standart (x, y, w, h) formatındaki dikdörtgen kutular yerine, sistem her bir kelime ve satır için çok noktalı poligonlar (polygon masks) ve okuma yönü (Right-to-Left) hizalamaları kullanır.
+
+###  4. Standart Kütüphanelerle PAGE-XML Entegrasyonu (ADR-017)
+eScriptorium, Transkribus ve benzeri uluslararası etiketleme platformlarının ürettiği PAGE-XML formatı ile kusursuz konuşur. Herhangi bir dış bağımlılığa (lxml vb.) ihtiyaç duymadan, sistem `Document → PAGE-XML → Document` döngüsünde sıfır veri kaybı garantisi verir.
+
+---
+
+##  Kanıtlanabilirlik Laboratuvarı: 194 Otomatik Test
+
+RikaOCR, "çalıştığını varsaydığımız" scriptlerden oluşmaz. Sistem her çalıştığında veya kod güncellendiğinde, tüm altyapı matematiksel testlerden geçirilir. **194 adet otomatik Pytest** şunları doğrular:
+
+* **Çekirdek (Core):** Belge alan modelinin (Document Hierarchy) bütünlüğü.
+* **Geometri (Geometry):** Koordinatların eksi (-) değer almadığı ve çokgenlerin matematiksel geçerliliği.
+* **Bölme (Splitting):** SHA-256 algoritmasının hiçbir koşulda veri sızdırmadığı.
+* **Uyarlanabilirlik (Dummy Engine):** Kraken gibi motorlar sistemde kurulu olmasa bile boru hattının (pipeline) çökmediği ve zarifçe atlandığı (Lazy Loading).
+
 ```bash
-pip install -e .
+# Tüm test laboratuvarını milisaniyeler içinde çalıştırmak için:
+pytest
