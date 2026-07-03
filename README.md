@@ -4,7 +4,15 @@ RikaOCR, **Rik'a hattıyla yazılmış Osmanlı arşiv (BOA) belgeleri** için
 geliştirilen açık kaynaklı bir **HTR (Handwritten Text Recognition)** / belge
 anlama platformudur. Mimari, ileride Divani, Siyakat ve Talik gibi diğer Osmanlı
 yazı türlerini de destekleyecek biçimde **yazı-nötr** kurulmuştur.
+(rikaenv) PS C:\Users\umut1\OneDrive\Desktop\RikaOCR> git add README.md
+(rikaenv) PS C:\Users\umut1\OneDrive\Desktop\RikaOCR> git commit -m "docs: update README with v0.9 architecture and M8 instructions"
+On branch main
+Your branch is up to date with 'origin/main'.
 
+nothing to commit, working tree clean
+(rikaenv) PS C:\Users\umut1\OneDrive\Desktop\RikaOCR> git push
+Everything up-to-date
+(rikaenv) PS C:\Users\umut1\OneDrive\Desktop\RikaOCR> 
 > **Durum:** v0.1 — M0 (iskelet & yönetişim). Mimari donduruldu (TDD v0.2).
 > Henüz tanıma yeteneği yoktur; altyapı kurulmaktadır.
 
