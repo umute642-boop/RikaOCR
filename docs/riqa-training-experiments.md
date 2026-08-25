@@ -72,3 +72,31 @@ Bu nedenle mevcut durumda seçilen model, gerçek train/validation ayrımıyla e
 0.8347 değeri nihai OCR başarısı değildir; Kraken iç validation metriğidir.
 
 Nihai başarı iddiası için modelin eğitim sırasında hiç görmediği bağımsız Rik'a belgelerinde CER ve WER hesaplanacaktır.
+
+## Belge Bazlı Nihai Değerlendirme
+
+Belge kimlikleri kullanılarak 85 belge deterministik biçimde ayrılmıştır:
+
+- Train: 67 belge / 1201 satır
+- Validation: 9 belge / 242 satır
+- Test: 9 belge / 132 satır
+- Aynı belge birden fazla bölüme girmemektedir.
+
+Belge-bazlı sıfırdan Kraken eğitiminin en iyi validation sonucu:
+
+- En iyi stage: 58
+- Kraken val_accuracy: 0.7502
+- Model: rika_docsplit_best_0.7502_seed42.safetensors
+
+Eğitimde hiç görülmeyen 9 test belgesi / 132 satır üzerinde Kraken test raporu:
+
+- Toplam karakter: 13,714
+- Karakter hatası: 3,122
+- Character Accuracy: 77.23%
+- CER: 22.77%
+- Word Accuracy: 27.66%
+- Insertions: 487
+- Deletions: 1,232
+- Substitutions: 1,403
+
+Not: Nihai WER değeri ayrıca doğrudan Levenshtein tabanlı değerlendirme ile hesaplanıp doğrulanacaktır; Word Accuracy değerinden otomatik olarak WER türetilmiş kabul edilmemektedir.
