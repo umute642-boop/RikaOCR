@@ -34,9 +34,18 @@ class KrakenRecognizer:
     def _load(self) -> object:
         """Load and cache the Kraken model (lazy import of ``kraken``)."""
         if self._model is None:
-            from kraken.lib import models
+            if str(self.model_path).lower().endswith(".safetensors"):
+                from kraken.lib.models import TorchSeqRecognizer
+                from kraken.models.loaders import load_safetensors
 
-            self._model = models.load_any(str(self.model_path))
+                loaded = load_safetensors(str(self.model_path), tasks=["recognition"])
+                if not loaded:
+                    raise RuntimeError("No recognition model found in safetensors file.")
+                self._model = TorchSeqRecognizer(loaded[0])
+            else:
+                from kraken.lib import models
+
+                self._model = models.load_any(str(self.model_path))
         return self._model
 
     def recognize(self, image: Image.Image) -> RecognitionResult:
@@ -46,18 +55,19 @@ class KrakenRecognizer:
         confidence (when Kraken reports per-character scores) is their mean.
         """
         from kraken import rpred
-        from kraken.containers import BaselineLine, Segmentation
+        from kraken.containers import BBoxLine, Segmentation
 
         model = self._load()
-        rgb = image.convert("RGB")
+        rgb = image.convert("L")
         width, height = rgb.size
-        line = BaselineLine(
+        line = BBoxLine(
             id="line_0",
-            baseline=[(0, height // 2), (width, height // 2)],
-            boundary=[(0, 0), (width, 0), (width, height), (0, height)],
+            bbox=(0, 0, width, height),
+            base_dir="R",
+            text_direction="horizontal-rl",
         )
         segmentation = Segmentation(
-            type="baselines",
+            type="bbox",
             imagename="",
             text_direction="horizontal-rl",
             script_detection=False,

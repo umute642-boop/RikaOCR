@@ -100,3 +100,11 @@ Eğitimde hiç görülmeyen 9 test belgesi / 132 satır üzerinde Kraken test ra
 - Substitutions: 1,403
 
 Not: Nihai WER değeri ayrıca doğrudan Levenshtein tabanlı değerlendirme ile hesaplanıp doğrulanacaktır; Word Accuracy değerinden otomatik olarak WER türetilmiş kabul edilmemektedir.
+
+### RikaOCR direct held-out evaluation
+- Held-out test: 9 documents / 132 lines
+- CER: 0.2276903 (22.77%)
+- Character accuracy: 77.23%
+- WER: 0.7247142 (72.47%)
+- RikaOCR character accuracy agrees with Kraken ketos test (77.23%).
+- WER was computed directly with RikaOCR aggregate_wer; it was not inferred from Kraken Word Accuracy.
