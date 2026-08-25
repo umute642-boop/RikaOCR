@@ -25,3 +25,10 @@ __pycache__/
 
 # MLflow (later)
 mlruns/
+
+# Local training datasets and artifacts
+data/
+escriptorium/
+*.safetensors
+*.ckpt
+*.arrow
