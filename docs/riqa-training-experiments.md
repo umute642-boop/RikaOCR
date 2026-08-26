@@ -108,3 +108,94 @@ Not: Nihai WER değeri ayrıca doğrudan Levenshtein tabanlı değerlendirme ile
 - WER: 0.7247142 (72.47%)
 - RikaOCR character accuracy agrees with Kraken ketos test (77.23%).
 - WER was computed directly with RikaOCR aggregate_wer; it was not inferred from Kraken Word Accuracy.
+
+## Controlled OpenITI → Rik'a transfer experiment (document-level split)
+
+Same deterministic document-level split and training settings as the final scratch experiment were used:
+- Train: 67 documents / 1201 lines
+- Validation: 9 documents / 242 lines
+- Test: 9 documents / 132 lines
+- Seed: 42
+- Learning rate: 0.001
+- Batch size: 4
+- Base direction: R
+- Unicode normalization: NFC
+- Early stopping: lag 10
+
+### Scratch baseline
+Model: `rika_docsplit_best_0.7502_seed42.safetensors`
+- Best validation character accuracy: 75.02%
+- Held-out document-level test character accuracy: 77.23%
+- CER: 22.77%
+- RikaOCR aggregate WER: 72.47%
+
+### Transfer learning: OpenITI base + `--resize union`
+OpenITI base model: `openiti_best_0.2866.safetensors`
+- Best validation character accuracy: 1.08%
+- Kraken held-out test character accuracy: 1.06%
+- RikaOCR CER: 98.94%
+- RikaOCR character accuracy: 1.06%
+- RikaOCR WER: 100%
+
+This configuration clearly underperformed the scratch baseline.
+
+### Transfer learning: OpenITI base + `--resize new`
+- Best validation character accuracy: 16.83%
+- Kraken `ketos test` character accuracy: 3.57%
+- Kraken word accuracy: 0%
+- RikaOCR/manual inference character accuracy: 15.48%
+- RikaOCR/manual CER: 84.52%
+- RikaOCR/manual WER: 100%
+
+A discrepancy remains between Kraken `ketos test` (3.57%) and direct model/RikaOCR inference (15.48%) for this weak transfer model. Checks performed so far ruled out:
+- image mode conversion (`L`)
+- crop/extract_polygons differences
+- CPU vs CUDA inference
+- train/eval mode
+- ground-truth normalization as a meaningful source of the discrepancy
+- decoder identity / basic forward path differences
+
+Therefore the `--resize new` held-out test accuracy should not yet be treated as a definitive paper metric. Both evaluation paths nevertheless show that transfer learning from the current OpenITI Naskh model performs far below the Rik'a scratch model.
+
+### Current methodological conclusion
+Under the controlled document-level protocol used here, training the Rik'a OCR model from scratch is substantially more successful than initializing from the available OpenITI-MAKHZAN Naskh model. The transfer-learning result is retained as a negative experimental finding rather than selected as the final OCR model.
+
+
+## Controlled OpenITI → Rik'a transfer experiment
+
+The same deterministic document-level split was used for the scratch and transfer-learning experiments:
+- Train: 67 documents / 1201 lines
+- Validation: 9 documents / 242 lines
+- Test: 9 documents / 132 lines
+- Seed: 42
+- Learning rate: 0.001
+- Batch size: 4
+- Base direction: R
+- Unicode normalization: NFC
+
+### Scratch baseline
+- Best validation character accuracy: 75.02%
+- Held-out document-level test character accuracy: 77.23%
+- CER: 22.77%
+- RikaOCR aggregate WER: 72.47%
+
+### OpenITI transfer — resize union
+- Best validation character accuracy: 1.08%
+- Held-out test character accuracy: 1.06%
+- RikaOCR CER: 98.94%
+- RikaOCR WER: 100%
+
+### OpenITI transfer — resize new
+- Best validation character accuracy: 16.83%
+- Kraken ketos test character accuracy: 3.57%
+- Direct RikaOCR/manual inference character accuracy: 15.48%
+- Direct CER: 84.52%
+- WER: 100%
+
+A discrepancy remains between Kraken ketos test (3.57%) and direct inference (15.48%) for the resize-new transfer model. Image mode, crop/extract_polygons behavior, CPU/CUDA execution, train/eval mode, ground-truth normalization, and the basic forward/decoder path were checked and did not explain the discrepancy.
+
+Therefore the resize-new test accuracy is not yet treated as a definitive paper metric. Both evaluation paths nevertheless show that the OpenITI-MAKHZAN Naskh transfer model performs substantially below the Rik'a scratch model.
+
+### Methodological conclusion
+Under the controlled document-level protocol, training the Rik'a OCR model from scratch substantially outperformed initialization from the available OpenITI-MAKHZAN Naskh model. Transfer learning is retained as a negative experimental result rather than selected as the final OCR model.
+
