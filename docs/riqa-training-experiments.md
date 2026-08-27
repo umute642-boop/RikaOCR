@@ -199,3 +199,130 @@ Therefore the resize-new test accuracy is not yet treated as a definitive paper 
 ### Methodological conclusion
 Under the controlled document-level protocol, training the Rik'a OCR model from scratch substantially outperformed initialization from the available OpenITI-MAKHZAN Naskh model. Transfer learning is retained as a negative experimental result rather than selected as the final OCR model.
 
+
+## External Rik'a document sanity check
+
+- External document: 0.jpg
+- This document was not part of the 1575-line Rik'a dataset.
+- Full-page OCR produced poor recognition.
+- Cropped-region OCR also remained poor.
+- A manually cropped single line was tested with segmentation disabled.
+- Recognition still did not match the manuscript line reliably.
+- Conclusion: the current model performs substantially worse on this out-of-domain archival Rik'a document.
+- This external document will NOT be added to the training set and is retained as an independent qualitative generalization example.
+
+
+## Transliteration baseline
+
+- Dataset source: Ottoman place-name gazetteer
+- Raw records: 44,838
+- Clean unambiguous Ottoman -> Latin pairs: 14,131
+- Split strategy: grouped by Latin target name to prevent spelling variants of the same place name from crossing splits
+- Seed: 42
+- Train: 11,330 pairs
+- Validation: 1,392 pairs
+- Test: 1,409 pairs
+- Target-group overlap between train/validation/test: 0
+- Model: character-level Transformer
+- PyTorch: 2.10.0+cu128
+- GPU: NVIDIA GeForce RTX 4060 Laptop GPU
+- Best validation CER: 34.82%
+- Best validation exact match: 22.70%
+- Final held-out test CER: 33.71%
+- Final held-out test exact match: 24.56%
+- Model: data/transliteration/models/char_transformer_seed42/best_model.pt
+- Final test results: data/transliteration/models/char_transformer_seed42/test_results.json
+- Inference script: scripts/transliteration/infer_char_transformer.py
+- Example sanity check: آب كارون -> Abkran
+- Interpretation: the transliteration component is a functional baseline, but accuracy remains limited. The training resource is a place-name gazetteer rather than a general Ottoman Turkish sentence-level transliteration corpus, so the model should not be presented as a general-purpose Ottoman transliterator.
+
+
+
+
+## ByT5 improvement checkpoint - 27 Aug 2026
+
+- Existing transliteration baseline completed.
+- Held-out test CER: 33.71%
+- Held-out test exact match: 24.56%.
+- Stronger ByT5 experiment started but training has NOT started yet.
+- Isolated environment created inside container: /tmp/byt5env
+- Transformers: 4.57.1
+- PyTorch: 2.10.0+cu128
+- GPU: NVIDIA GeForce RTX 4060 Laptop GPU
+- GPU VRAM: 8188 MiB (~8 GB)
+- google/byt5-small successfully downloaded and loaded.
+- ByT5-small parameters: 299,637,760
+- Tokenizer size: 384
+- Kraken environment verified before shutdown:
+  Kraken 7.0.3
+  safetensors 0.7.0
+- Docker Desktop later returned a 500 Internal Server Error and the Docker Engine was shut down.
+- Next session:
+  1. Start Docker Desktop.
+  2. Verify escriptorium-celery-main-1 is available.
+  3. Check whether /tmp/byt5env and cached google/byt5-small remain.
+  4. Recreate them only if necessary.
+  5. Prepare 8-GB-VRAM-safe ByT5 fine-tuning with FP16, gradient checkpointing and gradient accumulation.
+  6. Tune only on validation; do not use the held-out test set for model selection.
+  7. Compare ByT5 against the character-Transformer baseline.
+  8. OpenAI/ChatGPT integration will be considered only after ByT5 evaluation.
+
+
+## ByT5 transliteration final experiment - 28 Aug 2026
+
+- Base model: google/byt5-small
+- Parameters: 299,637,760
+- Seed: 42
+- Dataset: same controlled Ottoman place-name split used for the character-Transformer baseline
+- Train: 11,330 pairs
+- Validation: 1,392 pairs
+- Held-out test: 1,409 pairs
+- Target-group overlap between train/validation/test: 0
+- Input/output normalization: NFC
+- Maximum source length: 192 ByT5 tokens
+- Maximum target length: 160 ByT5 tokens
+- Training precision: BF16
+- FP16 was tested initially but manually stopped because of numerical instability (extreme loss values and NaN gradient norms); FP16 results were not used.
+- Gradient checkpointing: enabled
+- Train batch size: 1
+- Evaluation batch size: 2
+- Gradient accumulation steps: 16
+- Learning rate: 5e-5
+- Maximum epochs: 15
+- Early-stopping patience: 3
+- Model-selection metric: validation CER
+- Held-out test set was not used for model selection or tuning.
+- Best checkpoint: checkpoint-10635 (epoch 15)
+- Best validation CER: 17.07%
+- Validation exact match: 39.22%
+- Final held-out test CER: 17.05%
+- Final held-out test exact match: 39.96%
+- Character-Transformer baseline held-out CER: 33.71%
+- Character-Transformer baseline held-out exact match: 24.56%
+- ByT5 substantially outperformed the character-Transformer baseline on the unchanged held-out test split.
+- Model: data/transliteration/models/byt5_small_seed42_bf16/best_model
+- Results: data/transliteration/models/byt5_small_seed42_bf16/results.json
+- Training log: data/transliteration/models/byt5_small_seed42_bf16/training.log
+- Inference script: scripts/transliteration/infer_byt5.py
+- Inference sanity check: آباران -> Abaran
+- Interpretation: this experiment evaluates Ottoman Arabic-script to Latin-script transliteration of place names. It must not be interpreted as sentence-level Ottoman Turkish translation performance or as end-to-end Rik'a document accuracy.
+
+
+## End-to-end OCR -> ByT5 integration checkpoint - 28 Aug 2026
+
+- RikaOCR CLI integration completed for separate OCR and transliteration outputs.
+- Added --line-image mode to bypass page segmentation for already-cropped line images.
+- Added ByT5 inference modes:
+  - whole: preserves the inference behaviour used in the controlled place-name experiment.
+  - word: optional operational mode for longer OCR lines; each whitespace-delimited unit is transliterated separately.
+- Real Rik'a line-image integration test:
+  - Image size: 312 x 53
+  - Kraken OCR: حضور سامم حضرت صدارتپاهیه
+  - ByT5 whole-mode output showed pathological repetition on the longer OCR sequence.
+  - ByT5 word-mode output: Hazzur Samim Hazrat Sadartepahya
+- CLI JSON output preserves the Arabic-script OCR as source_text and stores Latin transliteration separately.
+- The whole-mode repetition and word-mode result are qualitative integration observations, not new held-out accuracy measurements.
+- The reported controlled ByT5 held-out results remain CER 17.05% and exact match 39.96% on the unchanged place-name test split.
+- Word mode must not be interpreted as validated general-purpose Ottoman sentence transliteration; it may lose contextual, morphological, or izafet information.
+- Full test suite after integration: 203 passed, 4 skipped.
+
