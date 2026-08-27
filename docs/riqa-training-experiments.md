@@ -326,3 +326,5 @@ Under the controlled document-level protocol, training the Rik'a OCR model from 
 - Word mode must not be interpreted as validated general-purpose Ottoman sentence transliteration; it may lose contextual, morphological, or izafet information.
 - Full test suite after integration: 203 passed, 4 skipped.
 
+- Split verification for the integration sample `022bb700-3465-48e3-b393-b446a44ab82b`: TRAIN according to `rikaocr.data.dataset.splitting.assign_split`.
+- Therefore this sample is retained strictly as a qualitative end-to-end integration/smoke test and must not be presented as held-out OCR or transliteration evidence.
