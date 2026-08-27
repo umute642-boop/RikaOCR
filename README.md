@@ -3,15 +3,15 @@
 > **Osmanlı Arşiv Belgeleri (BOA) İçin Bağımsız, Deterministik ve Motor-Nötr HTR Araştırma Altyapısı**
 
 ![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)
-![Tests](https://img.shields.io/badge/tests-194%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-203%20passed%20%7C%204%20skipped-brightgreen.svg)
 ![Architecture](https://img.shields.io/badge/architecture-engine--agnostic-orange.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-**Mevcut Durum:** v0.9 — M8 (Veri Hazırlığı ve Ground Truth Aşaması). Çekirdek mimari, otomatik test laboratuvarı ve PAGE-XML entegrasyonu tamamlanmıştır.
+**Mevcut Durum:** Çekirdek mimari, PAGE-XML desteği, belge-bazlı deterministik veri bölme, Kraken tabanlı Rik’a OCR ve ByT5 transliterasyon entegrasyonu tamamlanmıştır. Son test durumu: **203 passed, 4 skipped**.
 
 RikaOCR, kapalı kutu (black-box) olarak çalışan ticari OCR araçlarına veya spesifik bir yapay zeka modeline bağımlı sistemlere karşı geliştirilmiş, **tamamen bağımsız ve şahsi bir açık kaynak araştırma inisiyatifidir.** Literatürdeki "veri sızıntısı" (data leakage), "tek modele bağımlılık" ve "karmaşık Osmanlı geometrisi" problemlerini kökünden çözmek için katı yazılım mühendisliği prensipleriyle (TDD, Dependency Inversion) inşa edilmiştir.
 
-Bu depo, sadece bir kod yığını değil; tüm bu altyapı geliştirme sürecinin, mimari kararların ve 194 adet doğrulama testinin detaylıca raporlandığı **58 sayfalık akademik bir makale taslağının (Q1 seviyesi hedefli) yaşayan, çalışan ve ispatlanmış halidir.**
+Bu depo, sadece bir kod yığını değil; tüm bu altyapı geliştirme sürecinin, mimari kararların ve 203 adet geçen doğrulama testinin detaylıca raporlandığı **58 sayfalık akademik bir makale taslağının (Q1 seviyesi hedefli) yaşayan, çalışan ve ispatlanmış halidir.**
 
 ---
 
@@ -102,3 +102,59 @@ RikaOCR, gereksiz kaynak tüketimini ve versiyon çakışmalarını önlemek ama
 Yalnızca belge hiyerarşisi, PAGE-XML dönüştürme, dizin yönetimi ve 194 testin çalıştırılması içindir. Ağır kütüphaneler içermez, sıradan bir işlemcide (CPU) saniyeler içinde kurulur.
 ```bash
 pip install -e .
+
+## Doğrulanmış Deney Sonuçları
+
+### Rik'a OCR — Kraken
+
+Nihai OCR modeli, deterministik belge-bazlı bölme ile eğitim sırasında hiç görülmeyen 9 belge / 132 satırlık held-out test kümesinde değerlendirilmiştir.
+
+- Character Accuracy: **77.23%**
+- CER: **22.77%**
+- WER: **72.47%**
+- Model: `data/kraken_models/riqa/rika_docsplit_best_0.7502_seed42.safetensors`
+
+Bu sonuçlar satır tanıma performansını ölçer. Özellikle WER değerinin yüksek olması, sistemin henüz kusursuz belge transkripsiyonu sağlamadığını gösterir.
+
+### Osmanlıca → Latin Harfli Transliterasyon — ByT5
+
+ByT5 transliterasyon modeli, sabit ve bağımsız held-out yer-adı test kümesinde değerlendirilmiştir.
+
+- CER: **17.05%**
+- Exact Match: **39.96%**
+- Model: `data/transliteration/models/byt5_small_seed42_bf16/best_model`
+
+Bu deney bir **yer-adı gazetteer'i** üzerinde yapılmıştır. Sonuçlar genel Osmanlı Türkçesi cümle transliterasyonu veya modern Türkçeye çeviri başarısı olarak yorumlanmamalıdır.
+
+### Uçtan Uca Mimari
+
+RikaOCR işlem hattında katmanlar ayrı tutulur:
+
+`Rik'a görüntüsü → Kraken OCR → Osmanlıca Arap harfli metin → ByT5 transliterasyon → Latin harfli çıktı`
+
+Ham OCR metni değiştirilmez; transliterasyon ayrı bir çıktı katmanı olarak saklanır. `--line-image` seçeneği, önceden satır olarak kırpılmış görüntülerde sayfa segmentasyonunu atlayarak doğrudan tanıma yapılmasını sağlar.
+
+
+
+## CLI Kullanımı
+
+Önceden satır olarak kırpılmış bir Rik'a görüntüsünü Kraken ile okuyup sonucu ByT5 ile Latin harflerine aktarmak için:
+
+```bash
+python -m rikaocr.cli INPUT.png \
+  -o ocr.txt \
+  --format text \
+  --engine kraken \
+  --line-image \
+  --rec-model PATH/TO/rika_docsplit_best_0.7502_seed42.safetensors \
+  --transliterate \
+  --translit-engine byt5 \
+  --translit-model PATH/TO/byt5_small_seed42_bf16/best_model \
+  --translit-output transliteration.json \
+  --translit-format json \
+  --translit-mode word
+```
+
+`--line-image`, görüntünün zaten tek satır olduğunu belirtir ve sayfa segmentasyonunu atlar.
+
+`--translit-mode whole`, kontrollü ByT5 yer-adı deneyinde kullanılan tam-sekans çıkarım davranışını korur. `--translit-mode word` ise daha uzun OCR satırlarında tekrarlayan üretimi azaltmak için sunulan operasyonel bir seçenektir; genel Osmanlıca cümle transliterasyonu için doğrulanmış bir doğruluk iddiası taşımaz.
