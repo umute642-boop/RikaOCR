@@ -1,4 +1,4 @@
-﻿# Virtual environments
+# Virtual environments
 rikaenv/
 .venv/
 venv/
@@ -25,7 +25,7 @@ __pycache__/
 mlruns/
 
 # Local training datasets and artifacts
-escriptorium/
+/escriptorium/
 
 data/transliteration/models/byt5_small_seed42_bf16/checkpoints/checkpoint-9926/optimizer.pt
 data/transliteration/models/byt5_small_seed42_bf16/checkpoints/checkpoint-10635/optimizer.pt
