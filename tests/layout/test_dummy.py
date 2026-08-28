@@ -2,7 +2,6 @@
 """Tests for the DummySegmenter."""
 
 from PIL import Image
-
 from rikaocr.core.document.enums import RegionType
 from rikaocr.layout.base import Segmenter
 from rikaocr.layout.dummy import DummySegmenter

@@ -6,7 +6,6 @@ from pathlib import Path
 from types import TracebackType
 
 import pytest
-
 from rikaocr.data.dataset.image_io import new_image, save_image
 from rikaocr.data.dataset.sample import LineSample
 from rikaocr.data.dataset.splitting import Split

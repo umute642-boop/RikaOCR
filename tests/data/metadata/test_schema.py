@@ -2,7 +2,6 @@
 """Tests for document metadata schema (de)serialisation."""
 
 import pytest
-
 from rikaocr.common.exceptions import DataError
 from rikaocr.data.metadata.rights import RightsStatus
 from rikaocr.data.metadata.schema import (

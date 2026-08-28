@@ -4,7 +4,6 @@
 from pathlib import Path
 
 import pytest
-
 from rikaocr.common.exceptions import DataError
 from rikaocr.core.document.enums import RegionType
 from rikaocr.core.document.geometry import BBox

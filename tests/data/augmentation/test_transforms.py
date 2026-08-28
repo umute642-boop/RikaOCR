@@ -4,7 +4,6 @@
 import numpy as np
 import pytest
 from PIL import Image
-
 from rikaocr.data.augmentation.transforms import (
     Augmenter,
     Binarize,

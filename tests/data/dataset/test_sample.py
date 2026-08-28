@@ -4,7 +4,6 @@
 from pathlib import Path
 
 import pytest
-
 from rikaocr.common.exceptions import DataError
 from rikaocr.data.dataset.sample import (
     LineSample,

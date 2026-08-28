@@ -4,7 +4,6 @@
 from pathlib import Path
 
 import pytest
-
 from rikaocr.data.ingest.loader import deduplicate, ingest_source
 from rikaocr.data.metadata.rights import RightsStatus
 from rikaocr.data.metadata.schema import Provenance

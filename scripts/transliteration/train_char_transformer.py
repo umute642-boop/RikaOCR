@@ -8,8 +8,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
-
+from torch.utils.data import DataLoader, Dataset
 
 PAD = "<pad>"
 BOS = "<bos>"
@@ -69,7 +68,7 @@ class PairDataset(Dataset):
 
 
 def collate(batch, src_pad, tgt_pad):
-    srcs, tgts, src_texts, tgt_texts = zip(*batch)
+    srcs, tgts, src_texts, tgt_texts = zip(*batch, strict=True)
     max_s = max(len(x) for x in srcs)
     max_t = max(len(x) for x in tgts)
 
@@ -77,9 +76,9 @@ def collate(batch, src_pad, tgt_pad):
     tgt = torch.full((len(batch), max_t), tgt_pad, dtype=torch.long)
 
     for i, x in enumerate(srcs):
-        src[i, :len(x)] = x
+        src[i, : len(x)] = x
     for i, x in enumerate(tgts):
-        tgt[i, :len(x)] = x
+        tgt[i, : len(x)] = x
 
     return src, tgt, src_texts, tgt_texts
 
@@ -90,15 +89,14 @@ class PositionalEncoding(nn.Module):
         pe = torch.zeros(max_len, d_model)
         pos = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
         div = torch.exp(
-            torch.arange(0, d_model, 2, dtype=torch.float32)
-            * (-math.log(10000.0) / d_model)
+            torch.arange(0, d_model, 2, dtype=torch.float32) * (-math.log(10000.0) / d_model)
         )
         pe[:, 0::2] = torch.sin(pos * div)
         pe[:, 1::2] = torch.cos(pos * div)
         self.register_buffer("pe", pe.unsqueeze(0))
 
     def forward(self, x):
-        return x + self.pe[:, :x.size(1)]
+        return x + self.pe[:, : x.size(1)]
 
 
 class CharTransformer(nn.Module):
@@ -176,9 +174,7 @@ class CharTransformer(nn.Module):
 
         for _ in range(max_len):
             tgt_e = self.pos(self.tgt_emb(ys) * math.sqrt(self.d_model))
-            causal = nn.Transformer.generate_square_subsequent_mask(
-                ys.size(1), device=src.device
-            )
+            causal = nn.Transformer.generate_square_subsequent_mask(ys.size(1), device=src.device)
             h = self.transformer.decoder(
                 tgt_e,
                 memory,
@@ -200,11 +196,13 @@ def levenshtein(a, b):
     for i, ca in enumerate(a, 1):
         cur = [i]
         for j, cb in enumerate(b, 1):
-            cur.append(min(
-                cur[-1] + 1,
-                prev[j] + 1,
-                prev[j - 1] + (ca != cb),
-            ))
+            cur.append(
+                min(
+                    cur[-1] + 1,
+                    prev[j] + 1,
+                    prev[j - 1] + (ca != cb),
+                )
+            )
         prev = cur
     return prev[-1]
 
@@ -234,7 +232,7 @@ def evaluate(model, loader, device, tgt_itos, bos_id, eos_id):
         src = src.to(device)
         pred_ids = model.greedy(src, bos_id, eos_id)
 
-        for ids, source, ref in zip(pred_ids, src_texts, refs):
+        for ids, source, ref in zip(pred_ids, src_texts, refs, strict=True):
             hyp = decode(ids, tgt_itos)
             edits += levenshtein(hyp, ref)
             chars += len(ref)
@@ -242,11 +240,13 @@ def evaluate(model, loader, device, tgt_itos, bos_id, eos_id):
             total += 1
 
             if len(examples) < 10:
-                examples.append({
-                    "osmanlica": source,
-                    "reference": ref,
-                    "prediction": hyp,
-                })
+                examples.append(
+                    {
+                        "osmanlica": source,
+                        "reference": ref,
+                        "prediction": hyp,
+                    }
+                )
 
     return {
         "cer": edits / chars if chars else 0.0,
@@ -289,7 +289,8 @@ def main():
     val_ds = PairDataset(val_pairs, src_stoi, tgt_stoi)
     test_ds = PairDataset(test_pairs, src_stoi, tgt_stoi)
 
-    coll = lambda b: collate(b, src_pad, tgt_pad)
+    def coll(b):
+        return collate(b, src_pad, tgt_pad)
 
     g = torch.Generator()
     g.manual_seed(args.seed)
@@ -366,9 +367,7 @@ def main():
             total_loss += loss.item()
             batches += 1
 
-        val = evaluate(
-            model, val_loader, device, tgt_itos, bos_id, eos_id
-        )
+        val = evaluate(model, val_loader, device, tgt_itos, bos_id, eos_id)
 
         train_loss = total_loss / max(batches, 1)
 
@@ -383,13 +382,16 @@ def main():
             best_cer = val["cer"]
             bad_epochs = 0
 
-            torch.save({
-                "model_state": model.state_dict(),
-                "src_itos": src_itos,
-                "tgt_itos": tgt_itos,
-                "seed": args.seed,
-                "val_cer": best_cer,
-            }, best_path)
+            torch.save(
+                {
+                    "model_state": model.state_dict(),
+                    "src_itos": src_itos,
+                    "tgt_itos": tgt_itos,
+                    "seed": args.seed,
+                    "val_cer": best_cer,
+                },
+                best_path,
+            )
 
             print("  BEST MODEL SAVED")
         else:
@@ -402,14 +404,10 @@ def main():
     checkpoint = torch.load(best_path, map_location=device)
     model.load_state_dict(checkpoint["model_state"])
 
-    final_val = evaluate(
-        model, val_loader, device, tgt_itos, bos_id, eos_id
-    )
+    final_val = evaluate(model, val_loader, device, tgt_itos, bos_id, eos_id)
 
     # Test is evaluated only here, after model selection is complete.
-    final_test = evaluate(
-        model, test_loader, device, tgt_itos, bos_id, eos_id
-    )
+    final_test = evaluate(model, test_loader, device, tgt_itos, bos_id, eos_id)
 
     result = {
         "seed": args.seed,

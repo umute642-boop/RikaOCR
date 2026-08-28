@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
-
 from rikaocr.cli import build_pipeline, main
 from rikaocr.data.annotation.page_xml import PageXmlCodec
 from rikaocr.pipeline import Pipeline

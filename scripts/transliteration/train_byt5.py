@@ -8,12 +8,12 @@ from pathlib import Path
 import torch
 from torch.utils.data import Dataset
 from transformers import (
-    AutoTokenizer,
     AutoModelForSeq2SeqLM,
+    AutoTokenizer,
     DataCollatorForSeq2Seq,
+    EarlyStoppingCallback,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
-    EarlyStoppingCallback,
 )
 
 
@@ -38,11 +38,13 @@ def levenshtein(a, b):
     for i, ca in enumerate(a, 1):
         cur = [i]
         for j, cb in enumerate(b, 1):
-            cur.append(min(
-                cur[-1] + 1,
-                prev[j] + 1,
-                prev[j - 1] + (ca != cb),
-            ))
+            cur.append(
+                min(
+                    cur[-1] + 1,
+                    prev[j] + 1,
+                    prev[j - 1] + (ca != cb),
+                )
+            )
         prev = cur
     return prev[-1]
 
@@ -102,7 +104,7 @@ def make_compute_metrics(tokenizer):
         chars = 0
         exact = 0
 
-        for hyp, ref in zip(pred_texts, ref_texts):
+        for hyp, ref in zip(pred_texts, ref_texts, strict=True):
             hyp = norm(hyp)
             ref = norm(ref)
 
@@ -192,32 +194,25 @@ def main():
         output_dir=str(outdir / "checkpoints"),
         num_train_epochs=args.epochs,
         learning_rate=args.lr,
-
         per_device_train_batch_size=1,
         per_device_eval_batch_size=2,
         gradient_accumulation_steps=16,
-
         fp16=False,
         bf16=True,
         gradient_checkpointing=True,
-
         eval_strategy="epoch",
         save_strategy="epoch",
         logging_strategy="steps",
         logging_steps=100,
-
         predict_with_generate=True,
         generation_max_length=args.max_target_length,
         generation_num_beams=1,
-
         load_best_model_at_end=True,
         metric_for_best_model="cer",
         greater_is_better=False,
-
         save_total_limit=2,
         max_grad_norm=1.0,
         weight_decay=0.01,
-
         report_to="none",
         seed=args.seed,
         data_seed=args.seed,
@@ -231,11 +226,7 @@ def main():
         processing_class=tokenizer,
         data_collator=collator,
         compute_metrics=make_compute_metrics(tokenizer),
-        callbacks=[
-            EarlyStoppingCallback(
-                early_stopping_patience=args.patience
-            )
-        ],
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=args.patience)],
     )
 
     trainer.train()
@@ -287,14 +278,16 @@ def main():
     )
 
     examples = []
-    for (src, _), ref, hyp in zip(test_pairs, ref_texts, pred_texts):
+    for (src, _), ref, hyp in zip(test_pairs, ref_texts, pred_texts, strict=True):
         if len(examples) >= 20:
             break
-        examples.append({
-            "osmanlica": src,
-            "reference": norm(ref),
-            "prediction": norm(hyp),
-        })
+        examples.append(
+            {
+                "osmanlica": src,
+                "reference": norm(ref),
+                "prediction": norm(hyp),
+            }
+        )
 
     results = {
         "model": args.model,
@@ -321,5 +314,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

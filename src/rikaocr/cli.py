@@ -19,12 +19,15 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from PIL import Image
+
 from rikaocr.common.types import PathLike
 from rikaocr.core.document.enums import RegionType
 from rikaocr.core.document.models import Document, Line, Page, Region
 from rikaocr.data.dataset.image_io import load_image
 from rikaocr.output import write_page_xml, write_text
 from rikaocr.pipeline import Pipeline
+from rikaocr.recognition.base import Recognizer
 from rikaocr.transliteration.base import Transliterator
 from rikaocr.transliteration.document import transliterate_document
 from rikaocr.transliteration.output import (
@@ -52,10 +55,7 @@ def build_pipeline(
 
     if engine == "kraken":
         if rec_model is None:
-            raise ValueError(
-                "Kraken engine requires --rec-model "
-                "(a trained recognition model)."
-            )
+            raise ValueError("Kraken engine requires --rec-model " "(a trained recognition model).")
 
         from rikaocr.layout.kraken_segmenter import KrakenSegmenter
         from rikaocr.recognition.kraken_adapter import KrakenRecognizer
@@ -65,14 +65,11 @@ def build_pipeline(
             KrakenRecognizer(model_path=rec_model),
         )
 
-    raise ValueError(
-        f"Unknown engine: {engine!r} "
-        "(expected 'dummy' or 'kraken')."
-    )
+    raise ValueError(f"Unknown engine: {engine!r} " "(expected 'dummy' or 'kraken').")
 
 
 def recognize_line_image(
-    image,
+    image: Image.Image,
     *,
     engine: str,
     rec_model: PathLike | None,
@@ -81,6 +78,8 @@ def recognize_line_image(
     image_ref: str | None = None,
 ) -> Document:
     """Recognise one already-cropped text line without segmentation."""
+    recognizer: Recognizer
+
     if engine == "dummy":
         from rikaocr.recognition.dummy import DummyRecognizer
 
@@ -88,19 +87,14 @@ def recognize_line_image(
 
     elif engine == "kraken":
         if rec_model is None:
-            raise ValueError(
-                "Kraken line-image mode requires --rec-model."
-            )
+            raise ValueError("Kraken line-image mode requires --rec-model.")
 
         from rikaocr.recognition.kraken_adapter import KrakenRecognizer
 
         recognizer = KrakenRecognizer(model_path=rec_model)
 
     else:
-        raise ValueError(
-            f"Unknown engine: {engine!r} "
-            "(expected 'dummy' or 'kraken')."
-        )
+        raise ValueError(f"Unknown engine: {engine!r} " "(expected 'dummy' or 'kraken').")
 
     result = recognizer.recognize(image)
 
@@ -140,9 +134,7 @@ def build_transliterator(
     """Construct a transliterator using lazy ML imports."""
     if engine == "byt5":
         if model_path is None:
-            raise ValueError(
-                "ByT5 transliteration requires --translit-model."
-            )
+            raise ValueError("ByT5 transliteration requires --translit-model.")
 
         from rikaocr.transliteration.byt5_adapter import ByT5Transliterator
 
@@ -152,18 +144,14 @@ def build_transliterator(
             mode=mode,
         )
 
-    raise ValueError(
-        f"Unknown transliteration engine: {engine!r} "
-        "(expected 'byt5')."
-    )
+    raise ValueError(f"Unknown transliteration engine: {engine!r} " "(expected 'byt5').")
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="rikaocr",
         description=(
-            "Recognise a page or line image and optionally transliterate "
-            "the OCR output."
+            "Recognise a page or line image and optionally transliterate " "the OCR output."
         ),
     )
 
@@ -263,9 +251,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.line_image:
         if args.format == "page":
-            parser.error(
-                "--line-image currently requires --format text."
-            )
+            parser.error("--line-image currently requires --format text.")
 
         document = recognize_line_image(
             image,
@@ -298,13 +284,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.transliterate:
         if args.translit_model is None:
-            parser.error(
-                "--transliterate requires --translit-model."
-            )
+            parser.error("--transliterate requires --translit-model.")
         if args.translit_output is None:
-            parser.error(
-                "--transliterate requires --translit-output."
-            )
+            parser.error("--transliterate requires --translit-output.")
 
         transliterator = build_transliterator(
             args.translit_engine,

@@ -3,9 +3,8 @@
 
 from pathlib import Path
 
-from PIL import Image
-
 import rikaocr.cli as cli
+from PIL import Image
 from rikaocr.transliteration.base import TransliterationResult
 
 
@@ -105,6 +104,4 @@ def test_cli_line_image_skips_segmentation_and_writes_outputs(
 
     assert exit_code == 0
     assert ocr_output.read_text(encoding="utf-8") == "حضور سامم حضرت صدارتپاهیه"
-    assert translit_output.read_text(encoding="utf-8") == (
-        "Hazzur Samim Hazrat Sadartepahya"
-    )
+    assert translit_output.read_text(encoding="utf-8") == ("Hazzur Samim Hazrat Sadartepahya")

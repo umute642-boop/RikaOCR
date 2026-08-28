@@ -35,17 +35,17 @@ class ByT5Transliterator:
     ) -> None:
         if mode not in {"whole", "word"}:
             raise ValueError(
-                f"Unknown transliteration mode: {mode!r} "
-                "(expected 'whole' or 'word')."
+                f"Unknown transliteration mode: {mode!r} " "(expected 'whole' or 'word')."
             )
 
         try:
             import torch
-            from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+            from transformers import (  # type: ignore[import-not-found]
+                AutoModelForSeq2SeqLM,
+                AutoTokenizer,
+            )
         except ImportError as exc:
-            raise RuntimeError(
-                "ByT5 transliteration requires PyTorch and Transformers."
-            ) from exc
+            raise RuntimeError("ByT5 transliteration requires PyTorch and Transformers.") from exc
 
         self._torch = torch
         self._device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -67,9 +67,11 @@ class ByT5Transliterator:
                 num_beams=1,
             )
 
-        return self._tokenizer.decode(
-            outputs[0],
-            skip_special_tokens=True,
+        return str(
+            self._tokenizer.decode(
+                outputs[0],
+                skip_special_tokens=True,
+            )
         )
 
     def transliterate(self, text: str) -> TransliterationResult:
@@ -81,8 +83,7 @@ class ByT5Transliterator:
         else:
             parts = re.split(r"(\s+)", source)
             prediction = "".join(
-                part if not part or part.isspace()
-                else self._transliterate_sequence(part)
+                part if not part or part.isspace() else self._transliterate_sequence(part)
                 for part in parts
             )
 

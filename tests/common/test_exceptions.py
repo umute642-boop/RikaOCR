@@ -2,7 +2,6 @@
 """Tests for the domain exception hierarchy."""
 
 import pytest
-
 from rikaocr.common.exceptions import (
     AlignmentError,
     ConfigError,

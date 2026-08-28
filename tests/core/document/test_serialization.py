@@ -2,7 +2,6 @@
 """Tests for lossless (de)serialisation of the document model."""
 
 import pytest
-
 from rikaocr.common.exceptions import SerializationError
 from rikaocr.core.document.enums import RegionType
 from rikaocr.core.document.geometry import Baseline, BBox, Point, Polygon

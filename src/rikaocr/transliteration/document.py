@@ -38,11 +38,7 @@ def transliterate_document(
     for page in document.pages:
         for region in page.iter_in_reading_order():
             for line in region.iter_in_reading_order():
-                latin = (
-                    transliterator.transliterate(line.text).text
-                    if line.text
-                    else ""
-                )
+                latin = transliterator.transliterate(line.text).text if line.text else ""
                 results.append(
                     LineTransliteration(
                         page_id=page.page_id,

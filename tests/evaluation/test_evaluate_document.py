@@ -2,7 +2,6 @@
 """Tests for document-level evaluation (evaluate_document)."""
 
 import pytest
-
 from rikaocr.common.exceptions import DataError
 from rikaocr.core.document.enums import RegionType
 from rikaocr.core.document.models import Document, Line, Page, Region

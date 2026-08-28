@@ -2,7 +2,6 @@
 """Tests for the distribution-rights gate."""
 
 import pytest
-
 from rikaocr.common.exceptions import DataError
 from rikaocr.data.metadata.rights import RightsStatus, require_distributable
 

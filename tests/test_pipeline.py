@@ -2,7 +2,6 @@
 """End-to-end tests for the recognition Pipeline with dependency-free engines."""
 
 from PIL import Image
-
 from rikaocr.layout.dummy import DummySegmenter
 from rikaocr.pipeline import Pipeline
 from rikaocr.recognition.dummy import DummyRecognizer

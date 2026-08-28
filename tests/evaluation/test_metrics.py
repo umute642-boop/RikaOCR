@@ -2,7 +2,6 @@
 """Tests for CER/WER metrics."""
 
 import pytest
-
 from rikaocr.evaluation.metrics import aggregate_cer, aggregate_wer, cer, edit_distance, wer
 
 

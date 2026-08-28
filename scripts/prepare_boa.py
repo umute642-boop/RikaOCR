@@ -22,7 +22,6 @@ from collections import Counter
 from pathlib import Path
 
 from PIL import Image
-
 from rikaocr.core.document.models import Document, Page
 from rikaocr.data.annotation.page_xml import PageXmlCodec
 from rikaocr.data.dataset.builder import build_dataset

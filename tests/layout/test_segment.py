@@ -2,7 +2,6 @@
 """Tests for segment_document and RTL reading-order assignment."""
 
 from PIL import Image
-
 from rikaocr.core.document.enums import RegionType
 from rikaocr.core.document.geometry import Point, Polygon
 from rikaocr.core.document.models import Region

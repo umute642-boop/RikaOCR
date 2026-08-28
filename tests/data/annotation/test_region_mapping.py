@@ -2,7 +2,6 @@
 """Tests for PAGE region-type mapping."""
 
 import pytest
-
 from rikaocr.core.document.enums import RegionType
 from rikaocr.data.annotation.region_mapping import region_type_from_page, region_type_to_page
 

@@ -2,7 +2,6 @@
 """Tests for the document entity model and its validation."""
 
 import pytest
-
 from rikaocr.common.exceptions import ValidationError
 from rikaocr.core.document.enums import RegionType
 from rikaocr.core.document.geometry import Baseline, Point, Polygon

@@ -5,7 +5,6 @@ import unicodedata
 import torch
 import torch.nn as nn
 
-
 PAD = "<pad>"
 BOS = "<bos>"
 EOS = "<eos>"
@@ -18,20 +17,29 @@ class PositionalEncoding(nn.Module):
         pe = torch.zeros(max_len, d_model)
         pos = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
         div = torch.exp(
-            torch.arange(0, d_model, 2, dtype=torch.float32)
-            * (-math.log(10000.0) / d_model)
+            torch.arange(0, d_model, 2, dtype=torch.float32) * (-math.log(10000.0) / d_model)
         )
         pe[:, 0::2] = torch.sin(pos * div)
         pe[:, 1::2] = torch.cos(pos * div)
         self.register_buffer("pe", pe.unsqueeze(0))
 
     def forward(self, x):
-        return x + self.pe[:, :x.size(1)]
+        return x + self.pe[:, : x.size(1)]
 
 
 class CharTransformer(nn.Module):
-    def __init__(self, src_vocab, tgt_vocab, src_pad, tgt_pad,
-                 d_model=128, nhead=4, layers=2, ff=256, dropout=0.1):
+    def __init__(
+        self,
+        src_vocab,
+        tgt_vocab,
+        src_pad,
+        tgt_pad,
+        d_model=128,
+        nhead=4,
+        layers=2,
+        ff=256,
+        dropout=0.1,
+    ):
         super().__init__()
         self.src_pad = src_pad
         self.tgt_pad = tgt_pad
@@ -71,9 +79,7 @@ class CharTransformer(nn.Module):
 
         for _ in range(max_len):
             tgt_e = self.pos(self.tgt_emb(ys) * math.sqrt(self.d_model))
-            causal = nn.Transformer.generate_square_subsequent_mask(
-                ys.size(1), device=src.device
-            )
+            causal = nn.Transformer.generate_square_subsequent_mask(ys.size(1), device=src.device)
             h = self.transformer.decoder(
                 tgt_e,
                 memory,
@@ -116,11 +122,7 @@ def main():
 
     text = unicodedata.normalize("NFC", args.text.strip())
 
-    ids = (
-        [src_stoi[BOS]]
-        + [src_stoi.get(c, src_stoi[UNK]) for c in text]
-        + [src_stoi[EOS]]
-    )
+    ids = [src_stoi[BOS]] + [src_stoi.get(c, src_stoi[UNK]) for c in text] + [src_stoi[EOS]]
 
     src = torch.tensor([ids], dtype=torch.long, device=device)
 
