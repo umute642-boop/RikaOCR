@@ -27,9 +27,7 @@ class ByT5Transliterator:
             import torch
             from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
         except ImportError as exc:
-            raise RuntimeError(
-                "ByT5 transliteration requires PyTorch and Transformers."
-            ) from exc
+            raise RuntimeError("ByT5 transliteration requires PyTorch and Transformers.") from exc
 
         self._torch = torch
         self._device = device or ("cuda" if torch.cuda.is_available() else "cpu")

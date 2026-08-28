@@ -48,10 +48,7 @@ def build_pipeline(
 
     if engine == "kraken":
         if rec_model is None:
-            raise ValueError(
-                "Kraken engine requires --rec-model "
-                "(a trained recognition model)."
-            )
+            raise ValueError("Kraken engine requires --rec-model " "(a trained recognition model).")
 
         from rikaocr.layout.kraken_segmenter import KrakenSegmenter
         from rikaocr.recognition.kraken_adapter import KrakenRecognizer
@@ -61,10 +58,7 @@ def build_pipeline(
             KrakenRecognizer(model_path=rec_model),
         )
 
-    raise ValueError(
-        f"Unknown engine: {engine!r} "
-        "(expected 'dummy' or 'kraken')."
-    )
+    raise ValueError(f"Unknown engine: {engine!r} " "(expected 'dummy' or 'kraken').")
 
 
 def build_transliterator(
@@ -77,9 +71,7 @@ def build_transliterator(
     """Construct a transliterator using lazy ML imports."""
     if engine == "byt5":
         if model_path is None:
-            raise ValueError(
-                "ByT5 transliteration requires --translit-model."
-            )
+            raise ValueError("ByT5 transliteration requires --translit-model.")
 
         from rikaocr.transliteration.byt5_adapter import ByT5Transliterator
 
@@ -89,19 +81,13 @@ def build_transliterator(
             mode=mode,
         )
 
-    raise ValueError(
-        f"Unknown transliteration engine: {engine!r} "
-        "(expected 'byt5')."
-    )
+    raise ValueError(f"Unknown transliteration engine: {engine!r} " "(expected 'byt5').")
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="rikaocr",
-        description=(
-            "Recognise a page image and optionally transliterate "
-            "the OCR output."
-        ),
+        description=("Recognise a page image and optionally transliterate " "the OCR output."),
     )
 
     parser.add_argument(
@@ -247,4 +233,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())
-
