@@ -796,7 +796,7 @@ Machine-readable citation metadata is provided in:
 
 Recommended archival record:
 
-**RikaOCR v0.10.3**  
+**RikaOCR v0.10.3**
 **DOI:** [`10.5281/zenodo.22151212`](https://doi.org/10.5281/zenodo.22151212)
 
 When citing the software, prefer the metadata provided by `CITATION.cff` or the Zenodo record.
@@ -805,8 +805,8 @@ When citing the software, prefer the metadata provided by `CITATION.cff` or the 
 
 ## 28. Author
 
-**Umut Çetinbaş**  
-History MA Student  
+**Umut Çetinbaş**
+History MA Student
 ORCID: [`0009-0006-6769-0052`](https://orcid.org/0009-0006-6769-0052)
 
 ---
