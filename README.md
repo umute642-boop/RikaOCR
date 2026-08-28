@@ -1,206 +1,834 @@
-# RikaOCR 
+# RikaOCR
 
-> **Osmanlı Arşiv Belgeleri (BOA) İçin Bağımsız, Deterministik ve Motor-Nötr HTR Araştırma Altyapısı**
+[![CI](https://github.com/umute642-boop/RikaOCR/actions/workflows/ci.yml/badge.svg)](https://github.com/umute642-boop/RikaOCR/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](pyproject.toml)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22151212-blue.svg)](https://doi.org/10.5281/zenodo.22151212)
 
-![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)
-![Tests](https://img.shields.io/badge/tests-203%20passed%20%7C%204%20skipped-brightgreen.svg)
-![Architecture](https://img.shields.io/badge/architecture-engine--agnostic-orange.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+**RikaOCR** is an open-source research prototype for the recognition of Ottoman **Rik'a** handwritten historical documents and for the subsequent **transliteration of recognized Ottoman Arabic-script text into Latin letters**.
 
-**Mevcut Durum:** Çekirdek mimari, PAGE-XML desteği, belge-bazlı deterministik veri bölme, Kraken tabanlı Rik’a OCR ve ByT5 transliterasyon entegrasyonu tamamlanmıştır. Son test durumu: **203 passed, 4 skipped**.
+The project is designed as a reproducible digital-history / historical-document research workflow rather than as a single black-box model.
 
-RikaOCR, kapalı kutu (black-box) olarak çalışan ticari OCR araçlarına veya spesifik bir yapay zeka modeline bağımlı sistemlere karşı geliştirilmiş, **tamamen bağımsız ve şahsi bir açık kaynak araştırma inisiyatifidir.** Literatürdeki "veri sızıntısı" (data leakage), "tek modele bağımlılık" ve "karmaşık Osmanlı geometrisi" problemlerini kökünden çözmek için katı yazılım mühendisliği prensipleriyle (TDD, Dependency Inversion) inşa edilmiştir.
+> **Important:** the transliteration stage is **not semantic translation into modern Turkish**.
 
-Bu depo, sadece bir kod yığını değil; tüm bu altyapı geliştirme sürecinin, mimari kararların ve 203 adet geçen doğrulama testinin detaylıca raporlandığı **58 sayfalık akademik bir makale taslağının (Q1 seviyesi hedefli) yaşayan, çalışan ve ispatlanmış halidir.**
+## Recommended archival release
 
----
-
-##  Geliştirme Motivasyonu: Neden "Sıradan" Bir OCR İşe Yaramaz?
-
-Tesseract veya standart PyTorch/HuggingFace HTR modelleri, Latin alfabesiyle ve düz satırlarla yazılmış modern matbu metinler için tasarlanmıştır. Ancak Başbakanlık Osmanlı Arşivi'ndeki (BOA) karmaşık Rik'a belgeleri bu sistemleri şu sebeplerle çökertir:
-
-1. **Topolojik Kaos (Derkenarlar ve Kavisler):** Osmanlı evrakında okuma sırası yukarıdan aşağıya standart bir akış izlemez. Çapraz yazılan derkenarlar, mühürler etrafında dolanan metinler ve kavisli (eğimli) satırlar (baseline) standart "dikdörtgen kutu (x, y, w, h)" mantığını işlevsiz kılar.
-2. **Dikey Ligatürler ve İstifleme:** Rik'a hattında kelimeler sadece yatay eksende birleşmez. Harfler dikeyde birbirinin üzerine biner (istif).
-3. **Bağlam Zorunluluğu:** Ünlü harflerin (harekelerin) olmaması, sistemi sadece karakter tanımaya (OCR) değil, dilsel bir tahmin yürütmeye (HTR + NLP) zorlar.
-
-RikaOCR, yapay zekayı bu kaotik belge yapısına uydurmak için **Geometri-Farkındalıklı (Geometry-Aware)** devasa bir köprü işlevi görür.
+- **Release:** `v0.10.3`
+- **Zenodo DOI:** [`10.5281/zenodo.22151212`](https://doi.org/10.5281/zenodo.22151212)
+- **License:** Apache-2.0 for RikaOCR source code
+- **Status:** working research prototype; not a production-grade universal Rik'a OCR system
 
 ---
 
-##  Çekirdek Mühendislik Kararları ve Mimari (ADR)
+## Türkçe kısa özet
 
-### 1. Motor Bağımsızlığı ve Adaptör Deseni (Engine-Agnosticism)
-RikaOCR çekirdeği **hiçbir** yapay zeka motoruna bağımlı değildir. Kraken, Calamari, TrOCR veya Tesseract; bu sistemlerin hepsi RikaOCR için sadece birer "Adaptör"dür (Dependency Inversion / Port-Adapter Pattern). 
-* **Pratik Sonuç:** Kraken projesi yarın güncellenmeyi bıraksa veya tamamen çökse bile, RikaOCR altyapısı bir satır bile hasar almaz. Yeni bir model için sadece `Segmenter` ve `Recognizer` arayüzlerine yeni bir sınıf yazılması yeterlidir.
+RikaOCR, Osmanlı Rik'a yazılı tarihî belgeleri için geliştirilen açık kaynaklı bir araştırma prototipidir.
 
-###  2. SHA-256 ile Deterministik Bölme (Zero Data Leakage)
-HTR literatüründeki en büyük metodolojik hata, eğitim (train) ve test verilerinin satır bazında rastgele bölünmesidir. Bu durum "Veri Sızıntısına" yol açar; yapay zeka, eğitimde gördüğü bir belgenin kağıt dokusunu, gürültüsünü veya kâtibinin el yazısını test setinde de görür ve yüksek başarı göstererek bizi kandırır.
-* **Çözümümüz:** RikaOCR, belgelerin kimliğini (ID) **SHA-256** ile şifreler ve veri setini katı bir şekilde **"Belge Bazında"** (Document-Level) böler. Eğitimdeki bir görselin tek bir pikseli bile test setine sızamaz (`test_splitting.py` ile matematiksel olarak ispatlanmıştır).
+Temel işlem zinciri:
 
-###  3. Poligonal Geometri ve Yönlendirme (RTL)
-Sistemdeki `Region`, `Line` ve `Word` sınıflarının her biri kendi poligonal maskelerini (Polygon) barındırır. Okuma sırası algoritmaları Arap/Osmanlı alfabesinin doğasına uygun olarak Sağdan-Sola (RTL) ve çokgen tabanlı çalışacak şekilde özelleştirilmiştir.
+**Rik'a belge görüntüsü → Kraken HTR/OCR → Osmanlıca Arap harfli metin → ByT5 transliterasyon → Latin harflerine aktarım**
 
-###  4. PAGE-XML "Round-Trip" Garantisi (ADR-017)
-Uluslararası platformlarla (eScriptorium, Transkribus) iletişim kuran `PageXmlCodec` modülü, kayıpsız bir gidiş-dönüş garantisi sunar. Sisteme giren bir belge, PAGE-XML'e dönüştürülüp tekrar projeye alındığında; okuma sırasından poligon noktalarına kadar hiçbir veri bozulmaz.
----
+ByT5 aşaması **modern Türkçeye anlamsal çeviri yapmaz**. Amaç, OCR tarafından üretilen Osmanlıca Arap harfli metni Latin harflerine aktarmaktır.
 
-##  Kilometre Taşları ve Geliştirme Günlükleri (M1 - M8)
-
-RikaOCR, rastgele yazılmış scriptlerin bir araya gelmesiyle değil, katı bir Milestones (M) planlaması ve Test-Güdümlü Geliştirme (TDD) metodolojisiyle adım adım inşa edilmiştir. Her bir aşama, 58 sayfalık akademik makale taslağında teorik olarak ispatlanmış ve kod düzeyinde doğrulanmıştır.
-
-###  M1: Belge Alan Modelinin (Domain Model) İnşası
-Sistemin veriyi hafızada nasıl tutacağını belirleyen temel ontoloji oluşturuldu. Osmanlı arşiv belgelerinin hiyerarşik yapısını temsil eden nesne yönelimli model sıfırdan yazıldı.
-* **Hiyerarşik Yapı:** `Document` ➔ `Page` ➔ `Region` ➔ `Line` ➔ `Word` ➔ `Token` zinciri kuruldu.
-* **Doğrulama:** Satırların üst bölgelere, kelimelerin satırlara olan geometrik bağımlılıkları `test_alignment.py` altındaki testlerle koruma altına alındı. Bir satırın, ait olduğu sayfa sınırlarının dışına çıkması yazılımsal olarak engellendi.
-
-###  M2: PAGE-XML Codec Modülü (`PageXmlCodec`)
-Uluslararası standart etiketleme formatı olan PAGE-XML verilerini okuma ve yazma yeteneği projeye kazandırıldı.
-* **Mühendislik Kararı:** Dış kütüphanelerin (lxml vb.) getireceği bağımlılık ve versiyon karmaşasını önlemek adına, Python'un yerleşik standart kütüphaneleriyle sıfırdan bir XML parser/encoder yazıldı (ADR-017).
-* **Kayıpsız Gidiş-Dönüş (Canonical Round-Trip):** Bir belgenin RikaOCR modelinden PAGE-XML'e dönüştürülüp, ardından tekrar RikaOCR modeline geri yüklenmesi durumunda koordinatların, okuma sırasının ve metinlerin tek bir bit bile kayba uğramadığı matematiksel olarak ispatlandı (`test_page_xml.py`).
-
-###  M3: Veri Girişi ve Üstveri (Ingest & Metadata) Yönetimi
-Arşivden gelen ham görüntülerin ve bunlara ait meta verilerin (kâtip bilgisi, fon kodu, belge tarihi vb.) sisteme güvenli bir şekilde alınması sağlandı. Veri manipülasyonunu engellemek amacıyla tüm girdiler izole bir dosya sistemine bağlandı.
-
-###  M4: Dataset Modülü ve Deterministik Bölme (SHA-256)
-Yapay zekanın eğitim sürecindeki en büyük bilimsel açmaz olan "veri sızıntısı" (data leakage) problemi bu aşamada çözüldü.
-* **Algoritma:** Her belge içeriği ve görseli, **SHA-256** algoritmasıyla benzersiz bir karma (hash) değerine dönüştürüldü.
-* **Katı Bölme Politikası:** Veri kümesi %80 Eğitim, %10 Doğrulama (Validation) ve %10 Test olarak ayrılırken, satır bazlı değil tamamen **Belge Bazlı** bölme yapıldı. Yapay zekanın test setinde karşılaşacağı bir kâtibin el yazısını veya sayfa gürültüsünü eğitim setinde görerek "kopya çekmesi" imkansız hale getirildi (`test_splitting.py`).
-
-###  M5: Model ve Motor Bağımsızlığı (Abstraction Layer)
-Yapay zeka motorlarının (Kraken vb.) projeye göbekten bağlanmasını önlemek amacıyla soyutlama katmanları (Protocols) yazıldı.
-* **Tasarım Kalıbı (Design Pattern):** *Adapter Pattern* kullanılarak `Recognizer` ve `Segmenter` sınıfları protokollere bağlandı.
-* **Tembel Yükleme (Lazy Loading):** PyTorch veya Kraken gibi devasa kütüphanelerin, projenin çekirdek modülleri çalışırken RAM'i şişirmemesi sağlandı. Bu kütüphaneler sadece yapay zeka tahmini (inference) istendiği milisaniyede hafızaya çağrılır (`test_kraken_adapter.py`).
-
-###  M6: Uçtan Uca (End-to-End) Boru Hattı ve CLI Entegrasyonu
-Yazılan tüm bağımsız modüller (Ingest, Codec, Dataset, Abstraction) merkezi bir boru hattında (`pipeline.py`) birleştirildi ve kullanıcı dostu bir Komut Satırı Arayüzü (CLI) geliştirildi.
-
-###  M7: Değerlendirme Motoru (Evaluation Engine)
-Eğitilen modellerin başarısını ölçmek için endüstri standardı olan CER (Karakter Hata Oranı) ve WER (Kelime Hata Oranı) hesaplama algoritmaları entegre edildi.
-* **Algoritmik Detay:** Karakter karşılaştırmaları için *Levenshtein Distance* (Düzenleme Mesafesi) algoritması Osmanlıca/Arap alfabesinin doğasına uygun olarak Sağdan-Sola (RTL) okuma sırasını gözetecek şekilde optimize edildi.
-
-###  M8: Veri Hazırlığı ve Yerel eScriptorium Laboratuvarı (Aktif Aşama)
-Yazılım altyapısının doğrulanmasının ardından, yapay zekaya Rik'a hattını öğreteceğimiz "Öğretmenlik" safhasına geçildi.
-* **Laboratuvar Kurulumu:** Windows ortamında WSL2 (Linux için Windows Alt Sistemi) ve Docker konteyner mimarisi kullanılarak yerel bir **eScriptorium** sunucusu ayağa kaldırıldı.
-* **Veri Köprüleri:** eScriptorium'dan çıkacak verileri anında işlemek üzere `prepare_boa.py` ve `export_gt.py` scriptleri tamamlandı. Şu an aktif olarak pilot belgelerin tam manuel segmentasyonu ve transkripsiyonu (Ground Truth üretimi) bu laboratuvar üzerinden yürütülmektedir.
+Kontrollü belge-ayrımlı testlerde model anlamlı sonuçlar vermiş olsa da, iki haricî Rik'a belgesinde yapılan ek deneyler mevcut OCR modelinin farklı el yazılarına güvenilir biçimde genellenemediğini göstermiştir. Bu nedenle proje bir **çalışan araştırma prototipi** olarak sunulmaktadır.
 
 ---
 
-## Doğrulama Laboratuvarı: 203 Başarılı Test, 4 Atlanan Test
+## 1. Research goals
 
-RikaOCR'un güncel test süiti (`pytest`) yazılım davranışını otomatik olarak doğrular. Son CI koşusunda 203 test başarıyla geçmiş, isteğe bağlı bağımlılık koşullarına bağlı 4 test güvenli biçimde atlanmıştır:
+RikaOCR was developed around four research goals:
 
-* **Geometri Doğrulamaları (`geometry`):** Poligon noktalarının eksi değer alamayacağını, çizgilerin çakışma matrislerini ve alan hesaplamalarını doğrular.
-* **Güvenlik ve Dayanıklılık:** Bozuk, eksik veya manipüle edilmiş PAGE-XML dosyaları sisteme yüklendiğinde, altyapının çökmeden bu dosyaları zarifçe reddettiğini (`validation`) kanıtlar.
-* **Donanım Bağımsızlığı:** Çekirdek testlerin önemli bölümü GPU veya ağır yapay zekâ bağımlılıkları olmadan çalışır; isteğe bağlı motorlara bağlı 4 test, ilgili bağımlılıklar bulunmadığında güvenli biçimde atlanır (Skipped).
----
+1. build a reproducible software infrastructure for Ottoman historical-document research;
+2. train and evaluate a Rik'a-specific handwriting-recognition model using document-separated evaluation;
+3. model Ottoman Arabic-script → Latin-letter transliteration separately from OCR;
+4. preserve models, splits, logs, experiments, code, provenance, and limitations in a citable public archive.
 
-##  Kurulum Mimarisi: Modüler Katmanlar
+The separation between OCR and transliteration is methodological:
 
-RikaOCR, gereksiz kaynak tüketimini ve versiyon çakışmalarını önlemek amacıyla "Katmanlı Kurulum" (Layered Installation) mimarisine sahiptir. Sistemin hangi özelliğine ihtiyaç duyuluyorsa, sadece o katmanın bağımlılıkları yüklenir:
-
-**1. Çekirdek Kurulum (Hafif İşlemler Katmanı)**
-Yalnızca belge hiyerarşisi, PAGE-XML dönüştürme, dizin yönetimi ve çekirdek testlerin çalıştırılması içindir. Ağır kütüphaneler içermez, sıradan bir işlemcide (CPU) saniyeler içinde kurulur.
-```bash
-pip install -e .
-
-## Doğrulanmış Deney Sonuçları
-
-### Rik'a OCR — Kraken
-
-Nihai OCR modeli, deterministik belge-bazlı bölme ile eğitim sırasında hiç görülmeyen 9 belge / 132 satırlık held-out test kümesinde değerlendirilmiştir.
-
-- Character Accuracy: **77.23%**
-- CER: **22.77%**
-- WER: **72.47%**
-- Model: `data/kraken_models/riqa/rika_docsplit_best_0.7502_seed42.safetensors`
-
-Bu sonuçlar satır tanıma performansını ölçer. Özellikle WER değerinin yüksek olması, sistemin henüz kusursuz belge transkripsiyonu sağlamadığını gösterir.
-
-### Osmanlıca → Latin Harfli Transliterasyon — ByT5
-
-ByT5 transliterasyon modeli, sabit ve bağımsız held-out yer-adı test kümesinde değerlendirilmiştir.
-
-- CER: **17.05%**
-- Exact Match: **39.96%**
-- Model: `data/transliteration/models/byt5_small_seed42_bf16/best_model`
-
-Bu deney bir **yer-adı gazetteer'i** üzerinde yapılmıştır. Sonuçlar genel Osmanlı Türkçesi cümle transliterasyonu veya modern Türkçeye çeviri başarısı olarak yorumlanmamalıdır.
-
-### Uçtan Uca Mimari
-
-RikaOCR işlem hattında katmanlar ayrı tutulur:
-
-`Rik'a görüntüsü → Kraken OCR → Osmanlıca Arap harfli metin → ByT5 transliterasyon → Latin harfli çıktı`
-
-Ham OCR metni değiştirilmez; transliterasyon ayrı bir çıktı katmanı olarak saklanır. `--line-image` seçeneği, önceden satır olarak kırpılmış görüntülerde sayfa segmentasyonunu atlayarak doğrudan tanıma yapılmasını sağlar.
-
-
-
-## CLI Kullanımı
-
-Önceden satır olarak kırpılmış bir Rik'a görüntüsünü Kraken ile okuyup sonucu ByT5 ile Latin harflerine aktarmak için:
-
-```bash
-python -m rikaocr.cli INPUT.png \
-  -o ocr.txt \
-  --format text \
-  --engine kraken \
-  --line-image \
-  --rec-model PATH/TO/rika_docsplit_best_0.7502_seed42.safetensors \
-  --transliterate \
-  --translit-engine byt5 \
-  --translit-model PATH/TO/byt5_small_seed42_bf16/best_model \
-  --translit-output transliteration.json \
-  --translit-format json \
-  --translit-mode word
+```text
+Rik'a document image
+        ↓
+Kraken segmentation / HTR
+        ↓
+Ottoman Arabic-script text
+        ↓
+ByT5 transliteration
+        ↓
+Latin-letter transfer
 ```
 
-`--line-image`, görüntünün zaten tek satır olduğunu belirtir ve sayfa segmentasyonunu atlar.
+A successful transliteration inference does not imply that the historical document was read correctly if the OCR input is wrong.
 
-`--translit-mode whole`, kontrollü ByT5 yer-adı deneyinde kullanılan tam-sekans çıkarım davranışını korur. `--translit-mode word` ise daha uzun OCR satırlarında tekrarlayan üretimi azaltmak için sunulan operasyonel bir seçenektir; genel Osmanlıca cümle transliterasyonu için doğrulanmış bir doğruluk iddiası taşımaz.
+---
 
+## 2. Project trajectory
 
-<!-- RIKAOCR_ACADEMIC_METADATA -->
+RikaOCR evolved through several research stages.
 
-## Research status
+### 2.1 Research software infrastructure
 
-RikaOCR is an open-source research prototype for Ottoman Rik'a handwritten document recognition and Latin-letter transliteration.
+The first phase focused on building a stable historical-document software foundation, including:
 
-The pipeline keeps recognition and transliteration separate:
+- document- and line-level data models;
+- image loading and preprocessing;
+- annotation handling;
+- PAGE XML support;
+- region and line geometry;
+- dataset construction;
+- deterministic splitting;
+- evaluation utilities;
+- Kraken integration;
+- transliteration interfaces;
+- command-line workflows;
+- output serialization;
+- experiment tracking;
+- automated testing;
+- continuous integration.
 
-**Rik'a image -> Kraken HTR/OCR -> Ottoman Arabic-script text -> ByT5 transliteration -> Latin-letter transfer**
+This made later model experiments traceable to explicit data splits, model paths, evaluation procedures, and versioned source code.
 
-This is not a modern-Turkish semantic translation pipeline.
+### 2.2 Ottoman-script recognition initialization
 
-Validated held-out Rik'a HTR results on 9 unseen documents / 132 lines:
+A selected OpenITI / MAKHZAN subset was used to establish an Ottoman-script Kraken base model before Rik'a-specific training.
 
-- Character Accuracy: **77.23%**
-- CER: **22.77%**
-- WER: **72.47%**
+### 2.3 Rik'a-specific HTR
 
-Validated ByT5 transliteration results on 1,409 held-out examples:
+Rik'a-specific Kraken models were trained and compared, including scratch and fine-tuning experiments. The principal reported model uses a deterministic document-level split.
 
-- CER: **17.05%**
-- Exact Match: **39.96%**
+### 2.4 Transliteration
 
-External qualitative tests show that generalization to arbitrary unseen Rik'a handwriting remains limited. RikaOCR should therefore be treated as a research prototype rather than a production-grade recognizer.
+Two approaches were evaluated for Ottoman Arabic-script → Latin-letter transliteration:
 
-## Reproducibility and citation
+- character-level Transformer baseline;
+- ByT5-small fine-tuning.
 
-See [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) for reproduction instructions, model paths, evaluation results, Git LFS information, and optimizer reconstruction.
+### 2.5 End-to-end integration and external testing
 
-See [`DATA_LICENSES.md`](DATA_LICENSES.md) for third-party data licensing and redistribution notes.
+The OCR and transliteration stages were technically integrated. Two additional external Rik'a documents were then tested to examine generalization beyond the controlled benchmark distribution.
 
-Machine-readable citation metadata is provided in [`CITATION.cff`](CITATION.cff).
+---
 
-**Author:** Umut Çetinbaş — History MA student  
-**ORCID:** https://orcid.org/0009-0006-6769-0052
+## 3. Data used in the research
 
+### 3.1 OpenITI / MAKHZAN selection
 
-## Archival DOI
+A selected subset of:
 
-Recommended archival release: **RikaOCR v0.10.3**
+- **3,512 lines**
 
-DOI: **10.5281/zenodo.22151212**
+was prepared for the initial Ottoman-script Kraken stage.
 
-Zenodo record: https://doi.org/10.5281/zenodo.22151212
+Principal base model:
+
+```text
+data/kraken_models/openiti/openiti_best_0.2866.safetensors
+```
+
+### 3.2 Rik'a benchmark
+
+The Rik'a benchmark used in the experiments contains:
+
+- **85 pages**
+- **1,575 annotated lines**
+
+The principal deterministic document-level split is:
+
+| Split | Documents | Lines |
+|---|---:|---:|
+| Training | 67 | 1,201 |
+| Validation | — | 242 |
+| Held-out test | 9 | 132 |
+
+Leakage checks for the reported held-out test:
+
+- train/validation ↔ test document overlap: **0**
+- train/validation ↔ test line overlap: **0**
+
+### 3.3 Transliteration data
+
+The Ottoman Place Names Gazetteer material contained approximately:
+
+- **44,838 raw pairs**
+
+After filtering and preparation:
+
+- **14,131 safe pairs**
+
+were retained for the controlled transliteration experiments.
+
+> Third-party data are not automatically treated as unrestricted RikaOCR-owned data. Provenance and redistribution notes are documented in [`DATA_LICENSES.md`](DATA_LICENSES.md).
+
+---
+
+## 4. Principal models
+
+| Component | Role | Principal artifact |
+|---|---|---|
+| OpenITI Kraken model | Ottoman-script initialization | `data/kraken_models/openiti/openiti_best_0.2866.safetensors` |
+| Rik'a Kraken model | Principal document-split HTR model | `data/kraken_models/riqa/rika_docsplit_best_0.7502_seed42.safetensors` |
+| Character Transformer | Transliteration baseline | `data/transliteration/models/char_transformer_seed42/best_model.pt` |
+| ByT5-small | Principal transliteration model | `data/transliteration/models/byt5_small_seed42_bf16/best_model` |
+
+Additional experimental Kraken models are retained in:
+
+```text
+data/kraken_models/riqa/
+```
+
+Preserved Rik'a model artifacts include:
+
+```text
+rika_best_0.1615_seed42_lr001.safetensors
+rika_docsplit_best_0.7502_seed42.safetensors
+rika_scratch_best_0.8347_seed42.safetensors
+```
+
+The principal reported held-out model is `rika_docsplit_best_0.7502_seed42.safetensors`; the other files are retained as experimental artifacts rather than being substituted for the reported model.
+
+and additional transliteration checkpoints are retained under:
+
+```text
+data/transliteration/models/
+```
+
+Large model artifacts are managed with **Git LFS**.
+
+---
+
+## 5. Experiment A — Held-out Rik'a document HTR
+
+### Evaluation design
+
+The principal Kraken Rik'a model was evaluated on:
+
+- **9 unseen documents**
+- **132 lines**
+
+These documents were excluded from the corresponding training split.
+
+### Results
+
+| Metric | Result |
+|---|---:|
+| Character Accuracy | **77.23%** |
+| CER | **22.77%** |
+| WER | **72.47%** |
+
+### Interpretation
+
+These are valid metrics for the documented held-out split.
+
+They do **not** establish that the model achieves the same performance on arbitrary Rik'a documents from different:
+
+- archives;
+- scribes;
+- periods;
+- scanning conditions;
+- page layouts;
+- handwriting styles.
+
+The gap between character-level and word-level performance is especially important: useful character recognition does not automatically imply reliable word transcription.
+
+---
+
+## 6. Experiment B — Frozen 500-word OCR diagnostic subset
+
+A frozen subset of **500 unique words** was used for a more diagnostic OCR analysis.
+
+| Diagnostic measure | Result |
+|---|---:|
+| Exact | **23.20%** |
+| Exact + near-reading | **47.80%** |
+| Unaligned/deleted | **6.20%** |
+| Micro CER | **34.23%** |
+
+This analysis complements the document-level CER/WER by exposing:
+
+- exact recognition;
+- near readings;
+- deletions;
+- alignment failures;
+- character-level error behavior.
+
+---
+
+## 7. Experiment C — Character-level Transformer baseline
+
+A character-level Transformer was trained as the initial transliteration baseline.
+
+Principal model:
+
+```text
+data/transliteration/models/char_transformer_seed42/best_model.pt
+```
+
+Held-out results:
+
+| Metric | Result |
+|---|---:|
+| CER | **33.71%** |
+| Exact Match | **24.56%** |
+
+This baseline was used to assess whether ByT5 provided a meaningful improvement.
+
+---
+
+## 8. Experiment D — ByT5 held-out transliteration evaluation
+
+A ByT5-small model was fine-tuned for Ottoman Arabic-script → Latin-letter transliteration.
+
+Principal model:
+
+```text
+data/transliteration/models/byt5_small_seed42_bf16/best_model
+```
+
+Held-out evaluation:
+
+- **1,409 examples**
+
+| Metric | Result |
+|---|---:|
+| CER | **17.05%** |
+| Exact Match | **39.96%** |
+
+### Important metric note
+
+`CER = 17.05%` must **not** be restated as “82.95% translation accuracy”.
+
+CER and Exact Match measure different aspects of sequence prediction, and the task is transliteration rather than semantic translation.
+
+---
+
+## 9. Experiment E — Frozen 500-word ByT5 diagnostic subset
+
+A frozen **500 unique single-word** subset was evaluated separately.
+
+| Metric | Result |
+|---|---:|
+| CER | **14.65%** |
+| Exact Match | **44.40%** |
+| Exact predictions | **222 / 500** |
+
+This provides a controlled view of single-word transliteration performance.
+
+---
+
+## 10. Transliteration model comparison
+
+| Model | CER | Exact Match |
+|---|---:|---:|
+| Character-level Transformer | **33.71%** | **24.56%** |
+| ByT5-small | **17.05%** | **39.96%** |
+
+Under the documented experimental setup, ByT5 substantially outperformed the character-level baseline.
+
+This does **not** mean that ByT5 can repair arbitrary OCR corruption. If the recognition stage produces the wrong Ottoman-script sequence, the transliteration stage is operating on the wrong source text.
+
+---
+
+## 11. Experiment F — End-to-end integration smoke test
+
+The complete technical chain was connected successfully:
+
+```text
+image
+  ↓
+Kraken HTR/OCR
+  ↓
+Ottoman Arabic-script OCR output
+  ↓
+ByT5
+  ↓
+Latin-letter output
+```
+
+This demonstrates software integration, not end-to-end palaeographic accuracy.
+
+The OCR stage remains the critical bottleneck when the target handwriting differs from the controlled training distribution.
+
+---
+
+## 12. Experiment G — External Rik'a document test 01
+
+A Rik'a document outside the principal benchmark material was tested qualitatively.
+
+### Full-page result
+
+Full-page segmentation produced many unreliable text units and the OCR output was largely unusable.
+
+### Full-page segmentation
+
+The full-page Kraken run produced **49 segmentation units**, substantially more than the useful visual line structure.
+
+### Segmentation-free line tests
+
+To determine whether the problem was caused only by segmentation, manually selected line crops were tested with segmentation disabled.
+
+Crop 1:
+
+```text
+coordinates: (300, 210, 823, 270)
+size: 523 × 60
+OCR: نرا ه رر الردارهت
+```
+
+Crop 2:
+
+```text
+coordinates: (250, 232, 823, 275)
+size: 573 × 43
+OCR: ندالا هیری رم شاراوا هداعك هدر
+```
+
+### Interpretation
+
+Recognition remained unreliable even on manually selected single-line crops.
+
+Therefore the failure cannot be attributed only to full-page segmentation.
+
+The experiment indicates weak generalization of the current Rik'a model to this external handwriting/domain.
+
+---
+
+## 13. Experiment H — External Rik'a document test 02
+
+A second external Rik'a document was tested.
+
+### Full-page segmentation
+
+The full-page Kraken run produced **35 segmentation units** for a document whose visual structure contained only a small number of main handwritten lines, indicating substantial over-segmentation.
+
+### Deskewed single-line test
+
+The page was rotated by approximately **4°**, then a line was cropped at:
+
+```text
+coordinates: (10, 74, 600, 108)
+size: 590 × 34
+```
+
+The crop was passed directly to Kraken with segmentation disabled.
+
+Raw OCR:
+
+```text
+ما وعلعس یرددل م ایعا یلا عام تادض انماطرایلعم هم اعان دضوا
+```
+
+The OCR string was then passed to the separate ByT5 environment as a technical pipeline test.
+
+Recorded experimental environment:
+
+```text
+Transformers: 4.57.1
+PyTorch: 2.10.0+cu128
+```
+
+ByT5 output:
+
+```text
+Ma ve Alas Yerddel merkez
+```
+
+### Interpretation
+
+This is **not** considered a successful reading or successful document transliteration.
+
+The source OCR was already unreliable. The ByT5 output only demonstrates that the second stage technically accepted the OCR string and generated a Latin-letter sequence.
+
+---
+
+## 14. What the external tests change about the project claim
+
+The controlled held-out benchmark and the external tests answer different questions.
+
+The held-out benchmark shows that the model learned useful recognition behavior within the documented benchmark distribution.
+
+The external tests show that the current model does **not yet generalize reliably to arbitrary external Rik'a handwriting**.
+
+Accordingly, RikaOCR should be described as:
+
+> **a working research prototype**
+
+and not as:
+
+> **a production-grade universal Ottoman Rik'a OCR system**
+
+The external failures are preserved because they are part of the research result, not something to hide.
+
+---
+
+## 15. Current validated results at a glance
+
+### Rik'a HTR
+
+| Evaluation | Metric | Result |
+|---|---|---:|
+| 9 unseen documents / 132 lines | Character Accuracy | **77.23%** |
+| 9 unseen documents / 132 lines | CER | **22.77%** |
+| 9 unseen documents / 132 lines | WER | **72.47%** |
+
+### OCR diagnostic subset
+
+| Evaluation | Metric | Result |
+|---|---|---:|
+| Frozen 500 unique words | Exact | **23.20%** |
+| Frozen 500 unique words | Exact + near-reading | **47.80%** |
+| Frozen 500 unique words | Unaligned/deleted | **6.20%** |
+| Frozen 500 unique words | Micro CER | **34.23%** |
+
+### Transliteration
+
+| Model / evaluation | CER | Exact Match |
+|---|---:|---:|
+| Character Transformer baseline | **33.71%** | **24.56%** |
+| ByT5 — 1,409 held-out examples | **17.05%** | **39.96%** |
+| ByT5 — frozen 500-word subset | **14.65%** | **44.40%** |
+
+### Software validation
+
+- **203 tests passed**
+- **4 tests skipped**
+- Ruff: passed
+- Black: passed
+- Mypy: passed
+- GitHub Actions CI: passing
+
+---
+
+## 16. Known limitations
+
+Current limitations include:
+
+- weak generalization to some external Rik'a handwriting;
+- sensitivity to page layout and segmentation;
+- relatively high WER despite better character-level performance;
+- propagation of OCR errors into transliteration;
+- limited writer-independent external validation;
+- transliteration experiments being more controlled than unrestricted long-document processing;
+- possible ByT5 repetition on long OCR sequences;
+- word-by-word ByT5 mode reducing some repetition in testing but not constituting a validated general sentence-level solution;
+- domain dependence on the handwriting and historical material represented in training data.
+
+These limitations define the next research questions.
+
+---
+
+## 17. Reproducibility
+
+Detailed reproduction instructions are available in:
+
+[`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md)
+
+The repository records:
+
+- deterministic data splits;
+- a detailed Rik'a experiment journal (`docs/riqa-training-experiments.md`);
+- model paths;
+- experiment outputs;
+- research logs;
+- software tests;
+- Git LFS configuration;
+- eScriptorium version;
+- GPU Docker configuration;
+- optimizer reconstruction hashes;
+- data provenance and licensing notes.
+
+---
+
+## 18. Clone the complete repository
+
+RikaOCR uses both **Git LFS** and a **Git submodule**.
+
+```bash
+git lfs install
+git clone --recurse-submodules https://github.com/umute642-boop/RikaOCR.git
+cd RikaOCR
+git lfs pull
+```
+
+If the repository was cloned without submodules:
+
+```bash
+git submodule update --init --recursive
+```
+
+---
+
+## 19. Python environment
+
+The main package targets **Python 3.11**.
+
+Create an environment:
+
+```bash
+python -m venv rikaenv
+```
+
+Then install the project:
+
+```bash
+python -m pip install --upgrade pip
+pip install -e ".[dev,data]"
+```
+
+Run the validated software checks:
+
+```bash
+python -m ruff check .
+python -m black --check .
+python -m mypy src
+python -m pytest
+```
+
+### ByT5 environment
+
+The ByT5 experiments used a separate Transformers/PyTorch environment because the OCR and transliteration software stacks had dependency constraints during experimentation.
+
+The separation is intentional and is described in the reproducibility documentation.
+
+---
+
+## 20. eScriptorium integration
+
+eScriptorium is included as a Git submodule.
+
+Pinned commit:
+
+```text
+b28fba8df35d3d7dea44427be8429996145f67b8
+```
+
+NVIDIA GPU Docker override:
+
+```text
+configs/escriptorium/docker-compose.override.yml
+```
+
+To use the preserved GPU override:
+
+### PowerShell
+
+```powershell
+Copy-Item configs/escriptorium/docker-compose.override.yml escriptorium/docker-compose.override.yml
+```
+
+### Linux/macOS
+
+```bash
+cp configs/escriptorium/docker-compose.override.yml escriptorium/docker-compose.override.yml
+```
+
+Local `.env` files are intentionally not tracked.
+
+---
+
+## 21. Large ByT5 optimizer reconstruction
+
+Two optimizer states were too large for convenient single-file hosting and were therefore split losslessly into Git LFS parts.
+
+### checkpoint-9926
+
+Expected SHA-256:
+
+```text
+1d772973765dddfc488ab466ed2a8352ec19499c0e03578f48fafda7127a2316
+```
+
+Reconstruct:
+
+```bash
+python scripts/reconstruct_byt5_optimizer.py data/transliteration/models/byt5_small_seed42_bf16/checkpoints/checkpoint-9926
+```
+
+### checkpoint-10635
+
+Expected SHA-256:
+
+```text
+9a6f7bdbafd68b82a596cab5b5fb0a59de2263db83edc39e2401d2a59d374db3
+```
+
+Reconstruct:
+
+```bash
+python scripts/reconstruct_byt5_optimizer.py data/transliteration/models/byt5_small_seed42_bf16/checkpoints/checkpoint-10635
+```
+
+The helper verifies the reconstructed SHA-256 digest.
+
+---
+
+## 22. Repository structure
+
+A simplified overview:
+
+```text
+RikaOCR/
+├── src/rikaocr/                         # active Python package
+├── tests/                               # automated tests
+├── scripts/                             # experiment / utility scripts
+├── docs/                                # reproducibility and research documentation
+├── data/
+│   ├── kraken_models/                   # Kraken model artifacts
+│   ├── kraken_work/                     # selected reproducibility artifacts
+│   └── transliteration/
+│       ├── models/                      # ByT5 and baseline models
+│       ├── splits/                      # transliteration splits
+│       └── integration/                 # integration artifacts
+├── configs/escriptorium/                # reproducible GPU override
+├── archive/source_backups/              # preserved historical source backups
+├── escriptorium/                        # Git submodule
+├── CITATION.cff
+├── DATA_LICENSES.md
+├── LICENSE
+├── README.md
+└── pyproject.toml
+```
+
+Some raw third-party datasets are intentionally excluded from the public repository when redistribution rights are unclear.
+
+---
+
+## 23. Data provenance and licensing
+
+RikaOCR source code is licensed under the **Apache License 2.0**.
+
+Historical source datasets may have different rights and redistribution conditions.
+
+See:
+
+[`DATA_LICENSES.md`](DATA_LICENSES.md)
+
+The repository intentionally distinguishes between:
+
+1. RikaOCR source code;
+2. trained models and RikaOCR-generated artifacts;
+3. third-party source datasets;
+4. derived research metadata.
+
+Open reproducibility does not mean claiming unrestricted ownership of third-party historical collections.
+
+---
+
+## 24. Research integrity and evaluation policy
+
+The project follows several evaluation principles:
+
+- held-out documents should remain isolated from training;
+- external qualitative samples should not be added to training before evaluation;
+- OCR and transliteration metrics should be reported separately;
+- failed external tests should be preserved and discussed;
+- CER should not be converted into an invented “accuracy” percentage;
+- technical pipeline execution should not be confused with successful historical reading;
+- model limitations should be part of the published research record.
+
+---
+
+## 25. Release history
+
+### v0.10.1
+
+Earlier project state before final archival/reproducibility preparation.
+
+### v0.10.2
+
+Archival research preparation including:
+
+- citation metadata;
+- reproducibility documentation;
+- CI fixes;
+- model preservation;
+- eScriptorium GPU configuration;
+- Git LFS archival work.
+
+### v0.10.3 — recommended archival release
+
+Prepared after the GitHub–Zenodo archival connection was active.
+
+No new model training was performed merely to create this release.
+
+The purpose of `v0.10.3` is to provide a stable citable research snapshot with synchronized:
+
+- source version;
+- citation metadata;
+- research documentation;
+- CI status;
+- model archive;
+- data-rights documentation;
+- Zenodo DOI registration.
+
+**DOI:** [`10.5281/zenodo.22151212`](https://doi.org/10.5281/zenodo.22151212)
+
+---
+
+## 26. Future work
+
+Priority directions include:
+
+- expanding Rik'a Ground Truth;
+- increasing writer diversity;
+- increasing archive and document-type diversity;
+- larger external test sets;
+- writer-independent evaluation;
+- improved page and line segmentation;
+- handwriting-specific augmentation;
+- confidence-aware recognition;
+- systematic palaeographic error analysis;
+- comparison with additional HTR architectures;
+- improved recognition of rare Ottoman character sequences;
+- error-aware OCR/transliteration coupling;
+- sentence-level transliteration evaluation;
+- document-level transliteration evaluation.
+
+The most important experimental rule remains:
+
+> external test material should stay isolated from training until evaluation is complete.
+
+---
+
+## 27. Citation
+
+Machine-readable citation metadata is provided in:
+
+[`CITATION.cff`](CITATION.cff)
+
+Recommended archival record:
+
+**RikaOCR v0.10.3**  
+**DOI:** [`10.5281/zenodo.22151212`](https://doi.org/10.5281/zenodo.22151212)
+
+When citing the software, prefer the metadata provided by `CITATION.cff` or the Zenodo record.
+
+---
+
+## 28. Author
+
+**Umut Çetinbaş**  
+History MA Student  
+ORCID: [`0009-0006-6769-0052`](https://orcid.org/0009-0006-6769-0052)
+
+---
+
+## 29. License
+
+RikaOCR source code is distributed under the **Apache License 2.0**.
+
+See [`LICENSE`](LICENSE).
+
+Third-party data licensing and redistribution notes are documented separately in [`DATA_LICENSES.md`](DATA_LICENSES.md).
+
+---
+
+## 30. Project status
+
+RikaOCR currently demonstrates that:
+
+1. a Rik'a-specific Kraken recognizer can be trained and evaluated with a document-separated benchmark;
+2. controlled Ottoman Arabic-script → Latin-letter transliteration can be modeled effectively with ByT5;
+3. the OCR and transliteration stages can be integrated technically;
+4. same-distribution held-out performance can differ substantially from external-document behavior;
+5. reproducible software infrastructure is necessary to document those distinctions correctly.
+
+The project is therefore best understood as a **reproducible digital-history research prototype and experimental baseline** for future Ottoman Rik'a HTR work.
