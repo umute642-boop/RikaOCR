@@ -1,0 +1,56 @@
+{
+  "cer": 0.3370956745701083,
+  "exact_match": 0.24556422995031937,
+  "examples": [
+    {
+      "osmanlica": "آباران",
+      "reference": "Abaran",
+      "prediction": "Abaran"
+    },
+    {
+      "osmanlica": "آبكور",
+      "reference": "Abkur",
+      "prediction": "Abgur"
+    },
+    {
+      "osmanlica": "آبيار",
+      "reference": "Abyar",
+      "prediction": "Abyar"
+    },
+    {
+      "osmanlica": "آجارۀ عليا",
+      "reference": "Acara-i Ulya",
+      "prediction": "Acara-i Alya"
+    },
+    {
+      "osmanlica": "آجي صُويىِ",
+      "reference": "Acısuyu",
+      "prediction": "Acısuyu"
+    },
+    {
+      "osmanlica": "آراج",
+      "reference": "Araç",
+      "prediction": "Arac"
+    },
+    {
+      "osmanlica": "آربه",
+      "reference": "Arba",
+      "prediction": "Arba"
+    },
+    {
+      "osmanlica": "آركيرو",
+      "reference": "Argiro",
+      "prediction": "Argivir"
+    },
+    {
+      "osmanlica": "آرموره",
+      "reference": "Armura",
+      "prediction": "Armura"
+    },
+    {
+      "osmanlica": "آزورت",
+      "reference": "Azort",
+      "prediction": "Azort"
+    }
+  ]
+}

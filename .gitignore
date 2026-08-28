@@ -1,4 +1,4 @@
-# Virtual environments
+﻿# Virtual environments
 rikaenv/
 .venv/
 venv/
@@ -14,8 +14,6 @@ __pycache__/
 # Models & data (DVC-managed later)
 *.h5
 *.keras
-*.pt
-*.pth
 *.onnx
 
 # IDE / OS
@@ -27,8 +25,20 @@ __pycache__/
 mlruns/
 
 # Local training datasets and artifacts
-data/
 escriptorium/
-*.safetensors
-*.ckpt
-*.arrow
+
+data/transliteration/models/byt5_small_seed42_bf16/checkpoints/checkpoint-9926/optimizer.pt
+data/transliteration/models/byt5_small_seed42_bf16/checkpoints/checkpoint-10635/optimizer.pt
+
+# Third-party/local research data not redistributed publicly
+data/benchmark/riqa/
+data/pretraining/
+data/external_test/
+data/raw/riqa/
+data/riqa_test_candidate/riqa/
+data/training/riqa/
+data/kraken_work/openiti/
+data/kraken_work/openiti.arrow
+data/kraken_work/riqa.arrow
+data/kraken_work/riqa_sample_1.png
+data/kraken_work/riqa_alignment_check.png

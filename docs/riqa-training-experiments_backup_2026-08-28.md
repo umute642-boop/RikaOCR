@@ -234,9 +234,56 @@ Under the controlled document-level protocol, training the Rik'a OCR model from 
 - Final test results: data/transliteration/models/char_transformer_seed42/test_results.json
 - Inference script: scripts/transliteration/infer_char_transformer.py
 - Example sanity check: آب كارون -> Abkran
+- Interpretation: the transliteration component is a functional baseline, but accuracy remains limited. The training resource is a place-name gazetteer rather than a general Ottoman Turkish sentence-level transliteration corpus, so the model should not be presented as a gene@'
+
+## Transliteration baseline
+
+- Dataset source: Ottoman place-name gazetteer
+- Raw records: 44,838
+- Clean unambiguous Ottoman -> Latin pairs: 14,131
+- Split strategy: grouped by Latin target name to prevent spelling variants of the same place name from crossing splits
+- Seed: 42
+- Train: 11,330 pairs
+- Validation: 1,392 pairs
+- Test: 1,409 pairs
+- Target-group overlap between train/validation/test: 0
+- Model: character-level Transformer
+- PyTorch: 2.10.0+cu128
+- GPU: NVIDIA GeForce RTX 4060 Laptop GPU
+- Best validation CER: 34.82%
+- Best validation exact match: 22.70%
+- Final held-out test CER: 33.71%
+- Final held-out test exact match: 24.56%
+- Model: data/transliteration/models/char_transformer_seed42/best_model.pt
+- Final test results: data/transliteration/models/char_transformer_seed42/test_results.json
+- Inference script: scripts/transliteration/infer_char_transformer.py
+- Example sanity check: آب كارون -> Abkran
 - Interpretation: the transliteration component is a functional baseline, but accuracy remains limited. The training resource is a place-name gazetteer rather than a general Ottoman Turkish sentence-level transliteration corpus, so the model should not be presented as a general-purpose Ottoman transliterator.
 
 
+## Transliteration baseline
+
+- Dataset source: Ottoman place-name gazetteer
+- Raw records: 44,838
+- Clean unambiguous Ottoman -> Latin pairs: 14,131
+- Split strategy: grouped by Latin target name to prevent spelling variants of the same place name from crossing splits
+- Seed: 42
+- Train: 11,330 pairs
+- Validation: 1,392 pairs
+- Test: 1,409 pairs
+- Target-group overlap between train/validation/test: 0
+- Model: character-level Transformer
+- PyTorch: 2.10.0+cu128
+- GPU: NVIDIA GeForce RTX 4060 Laptop GPU
+- Best validation CER: 34.82%
+- Best validation exact match: 22.70%
+- Final held-out test CER: 33.71%
+- Final held-out test exact match: 24.56%
+- Model: data/transliteration/models/char_transformer_seed42/best_model.pt
+- Final test results: data/transliteration/models/char_transformer_seed42/test_results.json
+- Inference script: scripts/transliteration/infer_char_transformer.py
+- Example sanity check: آب كارون -> Abkran
+- Interpretation: the transliteration component is a functional baseline, but accuracy remains limited. The training resource is a place-name gazetteer rather than a general Ottoman Turkish sentence-level transliteration corpus, so the model should not be presented as a general-purpose Ottoman transliterator.
 
 
 ## ByT5 improvement checkpoint - 27 Aug 2026
@@ -307,45 +354,3 @@ Under the controlled document-level protocol, training the Rik'a OCR model from 
 - Inference sanity check: آباران -> Abaran
 - Interpretation: this experiment evaluates Ottoman Arabic-script to Latin-script transliteration of place names. It must not be interpreted as sentence-level Ottoman Turkish translation performance or as end-to-end Rik'a document accuracy.
 
-
-## End-to-end OCR -> ByT5 integration checkpoint - 28 Aug 2026
-
-- RikaOCR CLI integration completed for separate OCR and transliteration outputs.
-- Added --line-image mode to bypass page segmentation for already-cropped line images.
-- Added ByT5 inference modes:
-  - whole: preserves the inference behaviour used in the controlled place-name experiment.
-  - word: optional operational mode for longer OCR lines; each whitespace-delimited unit is transliterated separately.
-- Real Rik'a line-image integration test:
-  - Image size: 312 x 53
-  - Kraken OCR: حضور سامم حضرت صدارتپاهیه
-  - ByT5 whole-mode output showed pathological repetition on the longer OCR sequence.
-  - ByT5 word-mode output: Hazzur Samim Hazrat Sadartepahya
-- CLI JSON output preserves the Arabic-script OCR as source_text and stores Latin transliteration separately.
-- The whole-mode repetition and word-mode result are qualitative integration observations, not new held-out accuracy measurements.
-- The reported controlled ByT5 held-out results remain CER 17.05% and exact match 39.96% on the unchanged place-name test split.
-- Word mode must not be interpreted as validated general-purpose Ottoman sentence transliteration; it may lose contextual, morphological, or izafet information.
-- Full test suite after integration: 203 passed, 4 skipped.
-
-- Split verification for the integration sample `022bb700-3465-48e3-b393-b446a44ab82b`: TRAIN according to `rikaocr.data.dataset.splitting.assign_split`.
-- Therefore this sample is retained strictly as a qualitative end-to-end integration/smoke test and must not be presented as held-out OCR or transliteration evidence.
-
-## External Rik'a document test 01 - 2026-08-28
-- Input: data/external_test/rika_test_01.png.png
-- Status: unseen external document; not used for training.
-- Model: data/kraken_models/riqa/rika_docsplit_best_0.7502_seed42.safetensors
-- Full-page run: segmentation produced 49 units; OCR output was not meaningfully readable.
-- Segmentation-free line test 1 OCR: نرا ه رر الردارهت
-- Segmentation-free line test 2 OCR: ندالا هیری رم شاراوا هداعك هدر
-- Interpretation: failure is not attributable only to page segmentation. Recognition generalization to this external handwriting/document domain is weak.
-- End-to-end transliteration was not treated as a success test because the OCR source text was already unreliable.
-
-## External Rik'a document test 02 - 2026-08-28
-- Input: data/external_test/rika_test_02.png.png
-- Status: unseen external document; not used for training.
-- Full-page segmentation: 35 units; OCR output not reliably readable.
-- Clean deskewed line, segmentation disabled.
-- Raw Kraken OCR:
-  ما وعلعس یرددل م ایعا یلا عام تادض انماطرایلعم هم اعان دضوا
-- ByT5 smoke-test output:
-  Ma ve Alas Yerddel merkez
-- Interpretation: end-to-end OCR -> transliteration pipeline executes successfully, but the document is not reliably transferred because the OCR source text is already incorrect. External handwriting/domain generalization remains the principal bottleneck.

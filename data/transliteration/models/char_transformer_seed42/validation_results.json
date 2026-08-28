@@ -1,0 +1,62 @@
+{
+  "seed": 42,
+  "train_size": 11330,
+  "validation_size": 1392,
+  "test_size": 1392,
+  "best_validation_cer": 0.3482447494123891,
+  "best_validation_exact_match": 0.22701149425287356,
+  "test_cer": 0.3482447494123891,
+  "test_exact_match": 0.22701149425287356,
+  "test_examples": [
+    {
+      "osmanlica": "آت چكن",
+      "reference": "Atçeken",
+      "prediction": "Atçiken"
+    },
+    {
+      "osmanlica": "آتالانته",
+      "reference": "Atalanta",
+      "prediction": "Atalanta"
+    },
+    {
+      "osmanlica": "آخْميم",
+      "reference": "Ahmim",
+      "prediction": "Ahmim"
+    },
+    {
+      "osmanlica": "آدلفوپولون",
+      "reference": "Adelfopolon",
+      "prediction": "Adolfopolon"
+    },
+    {
+      "osmanlica": "آرحوى مع ويچه",
+      "reference": "Arhavi maa Viçe",
+      "prediction": "Arhoviçe maa Yaviçe"
+    },
+    {
+      "osmanlica": "آرغد خانى",
+      "reference": "Argıdhanı",
+      "prediction": "Argadanı"
+    },
+    {
+      "osmanlica": "آرغيد خانى",
+      "reference": "Argıdhanı",
+      "prediction": "Argıdanı"
+    },
+    {
+      "osmanlica": "آغرى",
+      "reference": "Ağrı",
+      "prediction": "Ağrı"
+    },
+    {
+      "osmanlica": "آغريبوز",
+      "reference": "Ağrıboz",
+      "prediction": "Ağrıboz"
+    },
+    {
+      "osmanlica": "آفرقيه مع باجه",
+      "reference": "Afrikıye maa Bace",
+      "prediction": "Afrika maa Baca"
+    }
+  ]
+}
