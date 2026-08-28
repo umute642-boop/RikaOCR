@@ -85,13 +85,13 @@ Yazılım altyapısının doğrulanmasının ardından, yapay zekaya Rik'a hatt�
 
 ---
 
-##  Doğrulama Laboratuvarı: 194 Onaylanmış Matematiksel İspat
+## Doğrulama Laboratuvarı: 203 Başarılı Test, 4 Atlanan Test
 
-RikaOCR, "çalıştığı iddia edilen" değil, **"çalıştığı 194 testle matematiksel olarak ispatlanmış"** bir altyapıdır. Geliştirilen test süiti (`pytest`), her kod satırını ve geometrik hesabı anlık olarak denetler:
+RikaOCR'un güncel test süiti (`pytest`) yazılım davranışını otomatik olarak doğrular. Son CI koşusunda 203 test başarıyla geçmiş, isteğe bağlı bağımlılık koşullarına bağlı 4 test güvenli biçimde atlanmıştır:
 
 * **Geometri Doğrulamaları (`geometry`):** Poligon noktalarının eksi değer alamayacağını, çizgilerin çakışma matrislerini ve alan hesaplamalarını doğrular.
 * **Güvenlik ve Dayanıklılık:** Bozuk, eksik veya manipüle edilmiş PAGE-XML dosyaları sisteme yüklendiğinde, altyapının çökmeden bu dosyaları zarifçe reddettiğini (`validation`) kanıtlar.
-* **Donanım Bağımsızlığı:** Bilgisayarda GPU veya ağır yapay zeka kütüphaneleri kurulu olmasa bile, 194 testin 190'ı standart Python kütüphaneleriyle milisaniyeler içinde çalışır; yapay zeka motoruna bağlı kalan 4 test ise sistem tarafından çökme yaşanmadan güvenle atlanır (Skipped).
+* **Donanım Bağımsızlığı:** Çekirdek testlerin önemli bölümü GPU veya ağır yapay zekâ bağımlılıkları olmadan çalışır; isteğe bağlı motorlara bağlı 4 test, ilgili bağımlılıklar bulunmadığında güvenli biçimde atlanır (Skipped).
 ---
 
 ##  Kurulum Mimarisi: Modüler Katmanlar
@@ -99,7 +99,7 @@ RikaOCR, "çalıştığı iddia edilen" değil, **"çalıştığı 194 testle ma
 RikaOCR, gereksiz kaynak tüketimini ve versiyon çakışmalarını önlemek amacıyla "Katmanlı Kurulum" (Layered Installation) mimarisine sahiptir. Sistemin hangi özelliğine ihtiyaç duyuluyorsa, sadece o katmanın bağımlılıkları yüklenir:
 
 **1. Çekirdek Kurulum (Hafif İşlemler Katmanı)**
-Yalnızca belge hiyerarşisi, PAGE-XML dönüştürme, dizin yönetimi ve 194 testin çalıştırılması içindir. Ağır kütüphaneler içermez, sıradan bir işlemcide (CPU) saniyeler içinde kurulur.
+Yalnızca belge hiyerarşisi, PAGE-XML dönüştürme, dizin yönetimi ve çekirdek testlerin çalıştırılması içindir. Ağır kütüphaneler içermez, sıradan bir işlemcide (CPU) saniyeler içinde kurulur.
 ```bash
 pip install -e .
 
