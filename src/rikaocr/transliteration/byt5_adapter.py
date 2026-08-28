@@ -39,7 +39,7 @@ class ByT5Transliterator:
             )
 
         try:
-            import torch
+            import torch  # type: ignore[import-not-found, unused-ignore]
             from transformers import (  # type: ignore[import-not-found]
                 AutoModelForSeq2SeqLM,
                 AutoTokenizer,
