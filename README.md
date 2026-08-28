@@ -195,3 +195,12 @@ Machine-readable citation metadata is provided in [`CITATION.cff`](CITATION.cff)
 
 **Author:** Umut Çetinbaş — History MA student  
 **ORCID:** https://orcid.org/0009-0006-6769-0052
+
+
+## Archival DOI
+
+Recommended archival release: **RikaOCR v0.10.3**
+
+DOI: **10.5281/zenodo.22151212**
+
+Zenodo record: https://doi.org/10.5281/zenodo.22151212

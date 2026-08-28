@@ -3,6 +3,7 @@ message: "If you use RikaOCR in research, please cite this software."
 title: "RikaOCR"
 type: software
 version: "0.10.3"
+doi: "10.5281/zenodo.22151212"
 authors:
   - family-names: "Çetinbaş"
     given-names: "Umut"
