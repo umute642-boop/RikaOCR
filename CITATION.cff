@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use RikaOCR in research, please cite this software."
+title: "RikaOCR"
+type: software
+version: "0.10.1"
+authors:
+  - family-names: "Çetinbaş"
+    given-names: "Umut"
+    orcid: "https://orcid.org/0009-0006-6769-0052"
+    email: "Umute642@gmail.com"
+repository-code: "https://github.com/umute642-boop/RikaOCR"
+license: "Apache-2.0"
+keywords:
+  - Ottoman Turkish
+  - Rik'a
+  - handwriting recognition
+  - HTR
+  - OCR
+  - Kraken
+  - ByT5
+  - transliteration
+  - digital humanities
+  - historical documents
+abstract: "RikaOCR is an open-source research prototype for handwritten text recognition of Ottoman Rik'a documents. It separates Kraken-based recognition of Ottoman Arabic-script text from ByT5-based Latin-letter transliteration."

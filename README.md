@@ -158,3 +158,40 @@ python -m rikaocr.cli INPUT.png \
 `--line-image`, görüntünün zaten tek satır olduğunu belirtir ve sayfa segmentasyonunu atlar.
 
 `--translit-mode whole`, kontrollü ByT5 yer-adı deneyinde kullanılan tam-sekans çıkarım davranışını korur. `--translit-mode word` ise daha uzun OCR satırlarında tekrarlayan üretimi azaltmak için sunulan operasyonel bir seçenektir; genel Osmanlıca cümle transliterasyonu için doğrulanmış bir doğruluk iddiası taşımaz.
+
+
+<!-- RIKAOCR_ACADEMIC_METADATA -->
+
+## Research status
+
+RikaOCR is an open-source research prototype for Ottoman Rik'a handwritten document recognition and Latin-letter transliteration.
+
+The pipeline keeps recognition and transliteration separate:
+
+**Rik'a image -> Kraken HTR/OCR -> Ottoman Arabic-script text -> ByT5 transliteration -> Latin-letter transfer**
+
+This is not a modern-Turkish semantic translation pipeline.
+
+Validated held-out Rik'a HTR results on 9 unseen documents / 132 lines:
+
+- Character Accuracy: **77.23%**
+- CER: **22.77%**
+- WER: **72.47%**
+
+Validated ByT5 transliteration results on 1,409 held-out examples:
+
+- CER: **17.05%**
+- Exact Match: **39.96%**
+
+External qualitative tests show that generalization to arbitrary unseen Rik'a handwriting remains limited. RikaOCR should therefore be treated as a research prototype rather than a production-grade recognizer.
+
+## Reproducibility and citation
+
+See [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) for reproduction instructions, model paths, evaluation results, Git LFS information, and optimizer reconstruction.
+
+See [`DATA_LICENSES.md`](DATA_LICENSES.md) for third-party data licensing and redistribution notes.
+
+Machine-readable citation metadata is provided in [`CITATION.cff`](CITATION.cff).
+
+**Author:** Umut Çetinbaş — History MA student  
+**ORCID:** https://orcid.org/0009-0006-6769-0052
