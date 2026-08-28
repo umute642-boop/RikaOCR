@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rikaocr"
-version = "0.10.0"
+version = "0.10.1"
 description = "Open-source HTR/OCR system for Ottoman Rik'a (BOA) documents"
 readme = "README.md"
 requires-python = ">=3.11"
