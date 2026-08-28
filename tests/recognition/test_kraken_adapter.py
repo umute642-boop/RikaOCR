@@ -8,6 +8,7 @@ wiring is skipped when the optional ``[train]`` extra is not installed.
 import importlib
 
 import pytest
+
 from rikaocr.recognition.base import Recognizer
 from rikaocr.recognition.kraken_adapter import KrakenRecognizer
 

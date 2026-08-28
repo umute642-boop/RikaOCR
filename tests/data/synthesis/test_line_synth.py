@@ -3,6 +3,7 @@
 
 import pytest
 from PIL import Image
+
 from rikaocr.common.exceptions import DataError
 from rikaocr.data.synthesis.line_synth import GlyphConcatSynth, SynthGenerator
 

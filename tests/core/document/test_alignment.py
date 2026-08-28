@@ -2,6 +2,7 @@
 """Tests for text-to-geometry alignment invariants."""
 
 import pytest
+
 from rikaocr.common.exceptions import AlignmentError
 from rikaocr.core.document.alignment import validate_alignment
 from rikaocr.core.document.enums import RegionType

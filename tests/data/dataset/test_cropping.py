@@ -2,6 +2,7 @@
 """Tests for line cropping (synthetic pages built at runtime with Pillow)."""
 
 from PIL import Image, ImageDraw
+
 from rikaocr.core.document.enums import RegionType
 from rikaocr.core.document.geometry import Point, Polygon
 from rikaocr.core.document.models import Document, Line, Page, Region

@@ -4,8 +4,9 @@
 import json
 from pathlib import Path
 
-import rikaocr.cli as cli
 from PIL import Image
+
+import rikaocr.cli as cli
 from rikaocr.core.document.enums import RegionType
 from rikaocr.core.document.models import Document, Line, Page, Region
 from rikaocr.transliteration.base import TransliterationResult

@@ -4,6 +4,7 @@
 from pathlib import Path
 
 import pytest
+
 from rikaocr.training.tracking import MlflowTracker, NullTracker, Tracker
 
 

@@ -2,6 +2,7 @@
 """Tests for the DummyRecognizer."""
 
 from PIL import Image
+
 from rikaocr.recognition.base import RecognitionResult, Recognizer
 from rikaocr.recognition.dummy import DummyRecognizer
 

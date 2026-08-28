@@ -4,6 +4,7 @@
 from dataclasses import FrozenInstanceError
 
 import pytest
+
 from rikaocr.common.exceptions import ValidationError
 from rikaocr.core.document.geometry import Baseline, BBox, Point, Polygon
 

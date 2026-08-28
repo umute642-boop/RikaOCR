@@ -2,6 +2,7 @@
 """Tests for the seedable augmentation pipeline."""
 
 from PIL import Image
+
 from rikaocr.data.augmentation.pipeline import AugmentationPipeline
 from rikaocr.data.augmentation.transforms import (
     Brightness,

@@ -2,6 +2,7 @@
 """Tests for deterministic document-level splitting."""
 
 import pytest
+
 from rikaocr.common.exceptions import ValidationError
 from rikaocr.data.dataset.splitting import Split, assign_split, split_documents
 

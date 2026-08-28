@@ -3,8 +3,9 @@
 
 from pathlib import Path
 
-import rikaocr.cli as cli
 from PIL import Image
+
+import rikaocr.cli as cli
 from rikaocr.transliteration.base import TransliterationResult
 
 

@@ -13,6 +13,7 @@ pytest.importorskip("kraken")
 from types import SimpleNamespace  # noqa: E402
 
 from PIL import Image  # noqa: E402
+
 from rikaocr.core.document.enums import RegionType  # noqa: E402
 from rikaocr.layout.base import segment_document  # noqa: E402
 from rikaocr.layout.kraken_segmenter import (  # noqa: E402
