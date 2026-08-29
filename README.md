@@ -808,7 +808,7 @@ When citing the software, prefer the metadata provided by `CITATION.cff` or the 
 **Umut Çetinbaş**
 History MA Student
 ORCID: [`0009-0006-6769-0052`](https://orcid.org/0009-0006-6769-0052)
-
+Mail: Umute642@gmail.com
 ---
 
 ## 29. License
