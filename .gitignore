@@ -42,3 +42,7 @@ data/kraken_work/openiti.arrow
 data/kraken_work/riqa.arrow
 data/kraken_work/riqa_sample_1.png
 data/kraken_work/riqa_alignment_check.png
+
+# Local Zenodo archival package
+RikaOCR_v0.10.3_COMPLETE.zip
+RikaOCR_v0.10.3_COMPLETE_SHA256.txt
